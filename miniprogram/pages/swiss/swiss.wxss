@@ -1,0 +1,68 @@
+/* 添加临时选手按钮样式 */
+.add-temp-player-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx;
+  margin: 0;
+  background-color: #f8f8f8;
+  border-radius: 10rpx 10rpx 0 0;
+  color: #07C160;
+  font-size: 30rpx;
+  font-weight: bold;
+  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.1);
+  width: 100%;
+  margin-bottom: 20rpx;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 800rpx;
+  position: relative;
+}
+
+.modal-footer {
+  display: flex;
+  flex-direction: column;
+  padding: 20rpx;
+  justify-content: space-between;
+  border-top: 1rpx solid #eee;
+  background-color: #fff;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 20rpx;
+}
+
+.modal-btn {
+  flex: 1;
+  height: 90rpx;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  font-size: 32rpx;
+  border-radius: 8rpx;
+  margin: 0 10rpx;
+  padding: 0;
+}
+
+.modal-btn::after {
+  border: none;
+}
+
+/* 已选择的选手部分样式 */
+.selected-players-section {
+  padding: 20rpx;
+  margin-top: 0;
+  background-color: #f9f9f9;
+  border-top: 1rpx solid #eee;
+}
+
+.add-icon {
+  font-size: 36rpx;
+  margin-right: 10rpx;
+} 

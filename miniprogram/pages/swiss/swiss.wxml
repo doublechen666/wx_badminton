@@ -1,0 +1,82 @@
+  <!-- 选手选择弹窗 -->
+  <view class="modal" wx:if="{{showPlayerSelectModal}}">
+    <view class="modal-mask" bindtap="hidePlayerSelect"></view>
+    <view class="modal-content">
+      <view class="modal-header">
+        <text class="modal-title">选择参赛选手</text>
+        <text class="selected-count">已选择: {{selectedPlayers.length}}{{mode === 'doubles' ? '/4' : ''}}</text>
+      </view>
+      <view class="modal-body">
+        <!-- 选手选择列表 -->
+        <view class="player-select-list">
+          <block wx:for="{{players}}" wx:key="id">
+            <view class="player-select-item {{isPlayerSelected(item.id) ? 'selected' : ''}}" 
+                  data-id="{{item.id}}" 
+                  bindtap="togglePlayerSelection">
+              <view class="player-info">
+                <image class="player-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}"></image>
+                <view class="player-details">
+                  <view class="player-name">
+                    {{item.name}}
+                    <text wx:if="{{item.isTemporary}}" class="temp-player-tag">临时</text>
+                  </view>
+                  <view class="player-score">排位分: {{item.score || 1000}}</view>
+                </view>
+              </view>
+              <view class="player-select-status">
+                <view class="select-indicator {{isPlayerSelected(item.id) ? 'selected' : ''}}">
+                  <icon wx:if="{{isPlayerSelected(item.id)}}" 
+                        type="success" 
+                        size="20" 
+                        color="#ffffff"></icon>
+                </view>
+              </view>
+            </view>
+          </block>
+        </view>
+        
+        <!-- 已选择的选手列表和添加临时选手按钮从这里移除 -->
+      </view>
+      
+      <!-- 已选择的选手列表移到这里，固定在底部 -->
+      <view class="selected-players-section" wx:if="{{selectedPlayers.length > 0}}">
+        <view class="section-title">已选择的选手</view>
+        <view class="selected-players-list">
+          <!-- 单打模式显示 -->
+          <block wx:if="{{mode !== 'doubles'}}">
+            <view class="selected-player-tag" wx:for="{{selectedPlayers}}" wx:key="id">
+              {{item.name}}
+              <view class="remove-player" catchtap="removeSelectedPlayer" data-player-id="{{item.id}}">×</view>
+            </view>
+          </block>
+          
+          <!-- 双打模式显示 -->
+          <block wx:else>
+            <!-- 按照组合显示选手 -->
+            <block wx:for="{{selectedPlayers}}" wx:key="id" wx:for-index="idx" wx:if="{{idx % 2 === 0}}">
+              <view class="selected-player-tag team" wx:if="{{idx + 1 < selectedPlayers.length}}">
+                {{selectedPlayers[idx].name}} + {{selectedPlayers[idx+1].name}}
+                <view class="remove-player" catchtap="removeDoublesTeam" data-index="{{idx}}">×</view>
+              </view>
+              <view class="selected-player-tag" wx:else>
+                {{selectedPlayers[idx].name}}
+                <view class="remove-player" catchtap="removeSelectedPlayer" data-player-id="{{selectedPlayers[idx].id}}">×</view>
+              </view>
+            </block>
+          </block>
+        </view>
+      </view>
+      
+      <view class="modal-footer">
+        <!-- 添加临时选手按钮移到这里，固定在底部 -->
+        <view class="add-temp-player-btn" bindtap="showAddTempPlayerModal">
+          <text class="add-icon">+</text>
+          <text>添加临时选手</text>
+        </view>
+        <view class="modal-buttons">
+          <button class="modal-btn cancel" bindtap="hidePlayerSelect">取消</button>
+          <button class="modal-btn confirm" bindtap="confirmPlayerSelection">确定</button>
+        </view>
+      </view>
+    </view>
+  </view> 

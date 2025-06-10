@@ -1,0 +1,488 @@
+<view class="container">
+  <!-- 用户信息区域 - 点击显示操作菜单 -->
+  <view class="user-info-section" bindtap="{{isLoggedIn ? 'showUserActionMenu' : 'showLoginModal'}}">
+    <view wx:if="{{!isLoggedIn}}" class="not-logged-in">
+      <image class="avatar-placeholder" src="/images/default-avatar.png"></image>
+      <view class="login-text">未登录 (点击登录)</view>
+    </view>
+    <view wx:else class="logged-in-info">
+      <!-- 使用已注册选手的头像 -->
+      <image class="user-avatar" src="{{playerInfo.avatarUrl || userInfo.avatarUrl || '/images/default-avatar.png'}}"></image>
+      <view class="user-details">
+        <text class="username">{{userInfo.nickName}}</text>
+        <text class="player-name" wx:if="{{playerInfo}}">选手: {{playerInfo.name}}</text>
+        <text class="user-id">ID: {{userInfo.userId}}</text>
+      </view>
+      <!-- 添加指示箭头表明可点击 -->
+      <view class="arrow-right">
+        <text class="action-hint">点击管理</text>
+        <text class="arrow">></text>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 注册选手区域 - 仅在未注册选手时显示 -->
+  <view class="action-section" wx:if="{{isLoggedIn && !playerInfo}}">
+    <view class="action-button" bindtap="showRegisterPlayerModal">
+      <image class="action-icon" src="/images/add-player.png"></image>
+      <text class="action-text">注册选手</text>
+    </view>
+  </view>
+  
+  <!-- 积分显示区域 - 对管理员显示特殊内容 -->
+  <view class="score-section" wx:if="{{isLoggedIn}}">
+    <view class="score-container" wx:if="{{userInfo.isAdmin}}">
+      <view class="score-title">系统管理面板</view>
+      <view class="admin-stats">
+        <view class="stat-item">
+          <text class="stat-label">选手总数</text>
+          <text class="stat-value">{{adminStats.totalPlayers || 0}}</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-label">比赛总数</text>
+          <text class="stat-value">{{adminStats.totalMatches || 0}}</text>
+        </view>
+      </view>
+      <view class="admin-info">管理员账号，拥有所有权限</view>
+    </view>
+    
+    <!-- 普通用户的积分显示 - 原有代码 -->
+    <view class="score-container" wx:elif="{{playerInfo}}">
+      <view class="score-title">当前排位分</view>
+      <view class="score-value">{{playerInfo.score || 1000}}</view>
+      <view class="player-title" bindtap="showTitleRanges">
+        <text class="title-text">{{playerTitle}}</text>
+      </view>
+      <view class="score-stats">
+        <view class="stat-item">
+          <text class="stat-label">胜场</text>
+          <text class="stat-value">{{playerInfo.wins || 0}}</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-label">负场</text>
+          <text class="stat-value">{{playerInfo.losses || 0}}</text>
+        </view>
+      </view>
+      <!-- 添加胜率数据 -->
+      <view class="score-stats">
+        <view class="stat-item">
+          <text class="stat-label">总胜率</text>
+          <text class="stat-value">{{playerInfo.winRate || '0%'}}</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-label">单打胜率</text>
+          <text class="stat-value">{{playerInfo.singlesWinRate || '0%'}}</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-label">双打胜率</text>
+          <text class="stat-value">{{playerInfo.doublesWinRate || '0%'}}</text>
+        </view>
+      </view>
+      <!-- 添加单打和双打场次数据 -->
+      <view class="score-stats">
+        <view class="stat-item">
+          <text class="stat-label">单打</text>
+          <text class="stat-value">{{playerInfo.singlesWins || 0}}胜{{playerInfo.singlesLosses || 0}}负</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-label">双打</text>
+          <text class="stat-value">{{playerInfo.doublesWins || 0}}胜{{playerInfo.doublesLosses || 0}}负</text>
+        </view>
+      </view>
+      <!-- 添加双打类型胜率 - 根据性别显示 -->
+      <view class="score-stats" wx:if="{{playerInfo.gender === 'male'}}">
+        <view class="stat-item">
+          <text class="stat-label">男双</text>
+          <text class="stat-value">{{playerInfo.maleDoublesWins || 0}}胜{{playerInfo.maleDoublesLosses || 0}}负</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-label">混双</text>
+          <text class="stat-value">{{playerInfo.mixedDoublesWins || 0}}胜{{playerInfo.mixedDoublesLosses || 0}}负</text>
+        </view>
+      </view>
+      <view class="score-stats" wx:if="{{playerInfo.gender === 'female'}}">
+        <view class="stat-item">
+          <text class="stat-label">女双</text>
+          <text class="stat-value">{{playerInfo.femaleDoublesWins || 0}}胜{{playerInfo.femaleDoublesLosses || 0}}负</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-label">混双</text>
+          <text class="stat-value">{{playerInfo.mixedDoublesWins || 0}}胜{{playerInfo.mixedDoublesLosses || 0}}负</text>
+        </view>
+      </view>
+      <view class="score-description">初始排位分: 1000</view>
+    </view>
+  </view>
+
+  <!-- 在用户信息下方添加管理员功能区 -->
+  <view class="admin-section" wx:if="{{isLoggedIn && userInfo.isAdmin}}">
+    <view class="section-title">管理员功能</view>
+    <view class="admin-buttons">
+      <view class="admin-btn export-btn" bindtap="exportData">导出数据</view>
+      <view class="admin-btn import-btn" bindtap="importData">导入数据</view>
+    </view>
+    <view class="admin-buttons">
+      <view class="admin-btn create-btn" bindtap="createNewPlayer">创建选手</view>
+      <view class="admin-btn manage-btn" bindtap="manageAllPlayers">管理选手</view>
+    </view>
+    <view class="admin-buttons" style="margin-top: 20rpx;">
+      <view class="admin-btn history-btn" bindtap="manageMatchHistory">管理历史记录</view>
+      <view class="admin-btn merge-btn" bindtap="mergeXiaoFeiPlayer" style="background-color: #ff9500;">合并小飞</view>
+    </view>
+  </view>
+</view>
+
+<!-- 用户操作菜单 - 移除图标 -->
+<view class="action-menu" wx:if="{{showActionMenu}}" bindtap="hideActionMenu">
+  <view class="action-menu-mask"></view>
+  <view class="action-menu-content" catchtap="stopPropagation">
+    <view class="menu-item" bindtap="editPlayerInfo" wx:if="{{playerInfo}}">
+      <text>修改选手信息</text>
+    </view>
+    <view class="menu-item" bindtap="showRegisterPlayerModal" wx:if="{{!playerInfo}}">
+      <text>注册选手</text>
+    </view>
+    <view class="menu-item logout" bindtap="logout">
+      <text>退出登录</text>
+    </view>
+    <view class="menu-item cancel" bindtap="hideActionMenu">
+      <text>取消</text>
+    </view>
+  </view>
+</view>
+
+<!-- 登录/注册弹窗 -->
+<view class="modal" wx:if="{{showLoginModal}}">
+  <view class="modal-mask" bindtap="hideLoginModal"></view>
+  <view class="modal-content">
+    <view class="modal-header">
+      <text>{{isRegisterMode ? '注册账号' : '登录账号'}}</text>
+    </view>
+    <view class="modal-body">
+      <view class="input-group">
+        <text class="input-label">用户名</text>
+        <input type="text" placeholder="请输入用户名" value="{{loginForm.username}}" bindinput="onUsernameInput" />
+      </view>
+      <view class="input-group">
+        <text class="input-label">密码</text>
+        <input type="password" placeholder="请输入密码" value="{{loginForm.password}}" bindinput="onPasswordInput" />
+      </view>
+      <view class="input-group" wx:if="{{isRegisterMode}}">
+        <text class="input-label">确认密码</text>
+        <input type="password" placeholder="请再次输入密码" value="{{loginForm.confirmPassword}}" bindinput="onConfirmPasswordInput" />
+      </view>
+      
+      <view class="modal-buttons">
+        <view class="modal-btn modal-btn-clear" bindtap="hideLoginModal">取消</view>
+        <view class="modal-btn modal-btn-primary" bindtap="{{isRegisterMode ? 'register' : 'login'}}">
+          {{isRegisterMode ? '注册' : '登录'}}
+        </view>
+      </view>
+      
+      <view class="switch-mode" bindtap="switchLoginMode">
+        {{isRegisterMode ? '已有账号？点击登录' : '没有账号？点击注册'}}
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 注册/修改选手弹窗 - 添加性别选择 -->
+<view class="modal" wx:if="{{showRegisterPlayerModal}}">
+  <view class="modal-mask" bindtap="hideRegisterPlayerModal"></view>
+  <view class="modal-content">
+    <view class="modal-header">
+      <text>{{editingPlayerId ? '修改选手信息' : '注册选手'}}</text>
+    </view>
+    <view class="modal-body">
+      <view class="input-group">
+        <text class="input-label">选手姓名</text>
+        <input type="text" placeholder="请输入选手姓名" value="{{playerForm.name}}" bindinput="onPlayerNameInput" />
+      </view>
+      
+      <view class="input-group">
+        <text class="input-label">性别</text>
+        <view class="gender-selection">
+          <view class="gender-option {{playerForm.gender === 'male' ? 'selected' : ''}}" bindtap="selectGender" data-gender="male">
+            <image class="gender-icon" src="/images/default-avatar.png"></image>
+            <text>男</text>
+          </view>
+          <view class="gender-option {{playerForm.gender === 'female' ? 'selected' : ''}}" bindtap="selectGender" data-gender="female">
+            <image class="gender-icon" src="/images/default-avatar-female.png"></image>
+            <text>女</text>
+          </view>
+        </view>
+      </view>
+      
+      <view class="modal-buttons">
+        <view class="modal-btn modal-btn-clear" bindtap="hideRegisterPlayerModal">取消</view>
+        <view class="modal-btn modal-btn-primary" bindtap="savePlayerInfo">确认</view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 导出数据模态窗口 -->
+<view class="modal" wx:if="{{showExportModal}}">
+  <view class="modal-mask" bindtap="hideExportModal"></view>
+  <view class="modal-content">
+    <view class="modal-header">
+      <text>数据导出</text>
+    </view>
+    <view class="modal-body">
+      <!-- 导出选项 -->
+      <view class="export-options">
+        <view class="option-group">
+          <text class="option-title">选择导出数据</text>
+          <view class="option-items">
+            <view class="option-item {{exportDataTypes.players ? 'selected' : ''}}" bindtap="toggleExportDataType" data-type="players">
+              选手数据
+            </view>
+            <view class="option-item {{exportDataTypes.matchHistory ? 'selected' : ''}}" bindtap="toggleExportDataType" data-type="matchHistory">
+              比赛记录
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="export-tips">
+        <text>请复制下方数据并安全保存，用于将来数据恢复</text>
+      </view>
+      <view class="data-field">
+        <textarea value="{{exportedData}}" auto-height maxlength="-1" />
+      </view>
+      <view class="copy-section">
+        <button class="copy-btn" bindtap="copyExportData">复制数据</button>
+      </view>
+      <view class="modal-buttons">
+        <view class="modal-btn modal-btn-primary" bindtap="hideExportModal">关闭</view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 导入数据模态窗口 -->
+<view class="modal" wx:if="{{showImportModal}}">
+  <view class="modal-mask" bindtap="hideImportModal"></view>
+  <view class="modal-content">
+    <view class="modal-header">
+      <text>数据导入</text>
+    </view>
+    <view class="modal-body">
+      <!-- 导入选项 -->
+      <view class="export-options">
+        <view class="option-group">
+          <text class="option-title">选择导入数据</text>
+          <view class="option-items">
+            <view class="option-item {{importDataTypes.players ? 'selected' : ''}}" bindtap="toggleImportDataType" data-type="players">
+              选手数据
+            </view>
+            <view class="option-item {{importDataTypes.matchHistory ? 'selected' : ''}}" bindtap="toggleImportDataType" data-type="matchHistory">
+              比赛记录
+            </view>
+          </view>
+        </view>
+      </view>
+      
+      <view class="export-tips">
+        <text>请粘贴之前导出的数据</text>
+      </view>
+      <view class="data-field">
+        <textarea placeholder="粘贴数据到这里" value="{{importText}}" bindinput="onImportTextInput" auto-height maxlength="-1" />
+      </view>
+      <view class="modal-buttons">
+        <view class="modal-btn modal-btn-clear" bindtap="hideImportModal">取消</view>
+        <view class="modal-btn modal-btn-primary" bindtap="confirmImport">确认导入</view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 选手列表管理弹窗 -->
+<view class="modal" wx:if="{{showPlayersListModal}}">
+  <view class="modal-mask" bindtap="hidePlayersListModal"></view>
+  <view class="modal-content players-list-modal">
+    <view class="modal-header">
+      <text>选手管理</text>
+    </view>
+    <view class="modal-body">
+      <view class="players-count">共 {{playersList.length}} 名选手</view>
+      
+      <!-- 搜索框 -->
+      <view class="search-box">
+        <view class="search-input-box">
+          <input type="text" placeholder="搜索选手姓名" bindinput="onPlayerSearchInput" value="{{playerSearchText}}"/>
+          <view class="search-icon" wx:if="{{!playerSearchText}}">🔍</view>
+          <view class="search-clear" wx:if="{{playerSearchText}}" bindtap="clearPlayerSearch">✕</view>
+        </view>
+      </view>
+      
+      <!-- 批量操作区域 -->
+      <view class="batch-operations">
+        <view class="batch-toggle" bindtap="toggleBatchSelectPlayers">
+          <text wx:if="{{!batchSelectPlayers}}">批量操作</text>
+          <text wx:else>取消批量</text>
+        </view>
+        <view class="batch-select-all" bindtap="toggleSelectAllPlayers" wx:if="{{batchSelectPlayers}}">
+          <text>{{allPlayersSelected ? '取消全选' : '全选'}}</text>
+        </view>
+        <view class="batch-delete-btn" bindtap="batchDeletePlayers" wx:if="{{batchSelectPlayers && selectedPlayerIds.length > 0}}">
+          <text>删除选中({{selectedPlayerIds.length}})</text>
+        </view>
+      </view>
+      
+      <scroll-view scroll-y="true" class="players-list">
+        <view class="player-item {{selectedPlayerIds.includes(item.id) ? 'selected' : ''}}" wx:for="{{filteredPlayersList}}" wx:key="id" bindtap="{{batchSelectPlayers ? 'togglePlayerSelection' : ''}}" data-id="{{item.id}}">
+          <!-- 移除勾选框，使用整行高亮显示选中状态 -->
+          
+          <view class="player-info">
+            <image class="player-list-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}"></image>
+            <view class="player-list-detail">
+              <text class="player-list-name">{{item.name}}</text>
+              <text class="player-list-score">排位分: {{item.score || 1000}}</text>
+            </view>
+          </view>
+          <view class="player-actions">
+            <view class="player-action edit" bindtap="editPlayer" data-id="{{item.id}}">编辑</view>
+            <view class="player-action delete" bindtap="deletePlayer" data-id="{{item.id}}" wx:if="{{!item.userId || item.userId !== userInfo.userId}}">删除</view>
+          </view>
+        </view>
+        
+        <!-- 无选手时显示提示 -->
+        <view class="no-players" wx:if="{{filteredPlayersList.length === 0}}">
+          <text>暂无选手，请点击"创建选手"添加</text>
+        </view>
+      </scroll-view>
+    </view>
+    
+    <view class="modal-footer">
+      <view class="modal-btn modal-btn-clear" bindtap="hidePlayersListModal">关闭</view>
+      <view class="modal-btn modal-btn-primary" bindtap="createNewPlayer">创建选手</view>
+    </view>
+  </view>
+</view>
+
+<!-- 历史记录管理弹窗 -->
+<view class="modal" wx:if="{{showHistoryListModal}}">
+  <view class="modal-mask" bindtap="hideHistoryListModal"></view>
+  <view class="modal-content players-list-modal">
+    <view class="modal-header">
+      <text>历史记录管理</text>
+    </view>
+    <view class="modal-body">
+      <view class="players-count">共 {{matchHistoryList.length}} 条记录</view>
+      
+      <!-- 搜索框 -->
+      <view class="search-box">
+        <view class="search-input-box">
+          <input type="text" placeholder="搜索对战记录" bindinput="onHistorySearchInput" value="{{historySearchText}}"/>
+          <view class="search-icon" wx:if="{{!historySearchText}}">🔍</view>
+          <view class="search-clear" wx:if="{{historySearchText}}" bindtap="clearHistorySearch">✕</view>
+        </view>
+      </view>
+      
+      <!-- 批量操作区域 -->
+      <view class="batch-operations">
+        <view class="batch-toggle" bindtap="toggleBatchSelectHistory">
+          <text wx:if="{{!batchSelectHistory}}">批量操作</text>
+          <text wx:else>取消批量</text>
+        </view>
+        <view class="batch-select-all" bindtap="toggleSelectAllHistory" wx:if="{{batchSelectHistory}}">
+          <text>{{allHistorySelected ? '取消全选' : '全选'}}</text>
+        </view>
+        <view class="batch-delete-btn" bindtap="batchDeleteHistory" wx:if="{{batchSelectHistory && selectedHistoryIds.length > 0}}">
+          <text>删除选中({{selectedHistoryIds.length}})</text>
+        </view>
+      </view>
+      
+      <scroll-view scroll-y="true" class="players-list">
+        <view class="history-item {{selectedHistoryIds.includes(item.id) ? 'selected' : ''}}" wx:for="{{filteredHistoryList}}" wx:key="id" bindtap="{{batchSelectHistory ? 'toggleHistorySelection' : ''}}" data-id="{{item.id}}">
+          <!-- 移除勾选框，使用整行高亮显示选中状态 -->
+          
+          <view class="history-info">
+            <view class="history-date">{{item.displayDate}}</view>
+            <view class="history-match">
+              <text class="team-name">{{item.leftTeamNames}}</text>
+              <text class="match-score">{{item.scoreResult}}</text>
+              <text class="team-name">{{item.rightTeamNames}}</text>
+            </view>
+          </view>
+          <view class="history-actions">
+            <view class="player-action edit" bindtap="editMatchHistory" data-id="{{item.id}}">编辑</view>
+            <view class="player-action delete" bindtap="deleteMatchHistory" data-id="{{item.id}}">删除</view>
+          </view>
+        </view>
+        
+        <!-- 无记录时显示提示 -->
+        <view class="no-players" wx:if="{{filteredHistoryList.length === 0}}">
+          <text>暂无历史记录</text>
+        </view>
+      </scroll-view>
+    </view>
+    
+    <view class="modal-footer">
+      <view class="modal-btn modal-btn-primary" bindtap="hideHistoryListModal">关闭</view>
+    </view>
+  </view>
+</view>
+
+<!-- 历史记录编辑弹窗 -->
+<view class="modal" wx:if="{{showEditHistoryModal}}">
+  <view class="modal-mask" bindtap="hideEditHistoryModal"></view>
+  <view class="modal-content">
+    <view class="modal-header">
+      <text>编辑历史记录</text>
+    </view>
+    <view class="modal-body">
+      <!-- 比赛双方 -->
+      <view class="input-group">
+        <text class="input-label">左方队伍</text>
+        <view class="match-teams-preview">
+          <text>{{editingHistory.leftTeamNames}}</text>
+        </view>
+      </view>
+      
+      <view class="input-group">
+        <text class="input-label">右方队伍</text>
+        <view class="match-teams-preview">
+          <text>{{editingHistory.rightTeamNames}}</text>
+        </view>
+      </view>
+      
+      <!-- 比分编辑 -->
+      <view class="input-group">
+        <text class="input-label">比分</text>
+        <view class="score-input-container">
+          <input type="number" class="score-input" value="{{editingHistory.leftScore}}" bindinput="onLeftScoreInput" placeholder="左方分数" disabled="{{false}}" />
+          <text class="score-separator">:</text>
+          <input type="number" class="score-input" value="{{editingHistory.rightScore}}" bindinput="onRightScoreInput" placeholder="右方分数" disabled="{{false}}" />
+        </view>
+      </view>
+      
+      <view class="modal-buttons">
+        <view class="modal-btn modal-btn-clear" bindtap="hideEditHistoryModal">取消</view>
+        <view class="modal-btn modal-btn-primary" bindtap="confirmEditHistory">确认</view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 称号排位分范围弹窗 -->
+<view class="modal" wx:if="{{showTitleRangesModal}}">
+  <view class="modal-mask" bindtap="hideTitleRanges"></view>
+  <view class="modal-content">
+    <view class="modal-header">
+      <text>称号排位分范围</text>
+    </view>
+    <view class="modal-body">
+      <view class="title-ranges-list">
+        <view class="title-range-item" wx:for="{{titleRanges}}" wx:key="title">
+          <text class="title-name {{playerTitle === item.title ? 'current-title' : ''}}">{{item.title}}</text>
+          <text class="title-range">{{item.range}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <view class="modal-btn modal-btn-primary" bindtap="hideTitleRanges">我知道了</view>
+    </view>
+  </view>
+</view> 

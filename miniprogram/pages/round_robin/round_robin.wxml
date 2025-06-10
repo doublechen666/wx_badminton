@@ -1,0 +1,392 @@
+<view class="container">
+  <!-- 页面标题 -->
+  <view class="page-header">
+    <view class="page-title">{{tournamentType === 'swiss' ? '大循环赛(瑞士轮)' : '大循环赛'}}</view>
+    <view class="mode-tag">{{mode === 'singles' ? '单打模式' : '双打模式'}}</view>
+    <block wx:if="{{tournamentType === 'swiss' && isMatchStarted}}">
+      <view class="round-info">第 {{currentRound}} 轮 / 共 {{totalRounds}} 轮</view>
+    </block>
+  </view>
+
+  <!-- 未开始比赛时显示 -->
+  <block wx:if="{{!isMatchStarted}}">
+    <view class="start-section">
+      <image class="start-image" src="/images/tournament.png" mode="aspectFit"></image>
+      <view class="start-text">选择参赛选手开始比赛</view>
+      <button class="primary-btn select-player-btn" bindtap="showPlayerSelect">选择选手</button>
+    </view>
+  </block>
+
+  <!-- 已开始比赛时显示 -->
+  <block wx:else>
+    <!-- 选手列表 -->
+    <view class="player-list">
+      <view class="section-title">参赛选手</view>
+      <view class="player-tags">
+        <view class="player-tag" wx:for="{{selectedPlayers}}" wx:key="id">
+          {{item.name}}
+        </view>
+      </view>
+    </view>
+
+    <!-- 比赛表格 -->
+    <view class="match-table-container" id="matchTableContainer" bindscroll="onTableScroll">
+      <view class="section-title">{{tournamentType === 'swiss' ? '当前轮次比赛' : '比赛表'}}</view>
+      
+      <!-- 滚动提示 -->
+      <view class="scroll-hint" wx:if="{{showScrollHint}}">→</view>
+      
+      <!-- 表格导航 -->
+      <view class="table-nav" wx:if="{{isTableScrollable && tournamentType === 'round_robin'}}">
+        <view class="table-nav-title">快速定位：</view>
+        <scroll-view scroll-x="true" class="table-nav-scroll">
+          <view class="table-nav-items">
+            <view class="table-nav-item" 
+                  wx:for="{{selectedPlayers}}" 
+                  wx:key="id" 
+                  data-index="{{index}}"
+                  bindtap="scrollToPlayer">
+              {{item.name}}
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+      
+      <!-- 完全循环模式表格 -->
+      <block wx:if="{{tournamentType === 'round_robin'}}">
+        <!-- 单打模式表格 -->
+        <block wx:if="{{mode === 'singles'}}">
+          <view class="match-table">
+            <!-- 表头 -->
+            <view class="table-row header-row">
+              <view class="table-cell header-cell player-name-cell"></view>
+              <view class="table-cell header-cell" wx:for="{{selectedPlayers}}" wx:key="id">
+                {{item.name}}
+              </view>
+            </view>
+            
+            <!-- 表格内容 -->
+            <view class="table-row" wx:for="{{matchTable}}" wx:for-item="row" wx:for-index="rowIndex" wx:key="rowIndex">
+              <view class="table-cell player-name-cell">{{row.player ? row.player.name : row.team.name}}</view>
+              <view class="table-cell {{match.isSelfMatch ? 'self-match-cell' : 'match-cell score-cell'}}" 
+                    wx:for="{{row.matches}}" 
+                    wx:for-item="match" 
+                    wx:for-index="colIndex" 
+                    wx:key="colIndex"
+                    data-row="{{rowIndex}}"
+                    data-col="{{colIndex}}"
+                    bindtap="{{!match.isSelfMatch ? 'showScoreInputModal' : ''}}">
+                <view class="match-score">{{match.score || '-'}}</view>
+              </view>
+            </view>
+          </view>
+        </block>
+        
+        <!-- 双打模式表格 -->
+        <block wx:else>
+          <view class="match-table">
+            <!-- 表头 -->
+            <view class="table-row header-row">
+              <view class="table-cell header-cell player-name-cell"></view>
+              <view class="table-cell header-cell" wx:for="{{matchTable}}" wx:key="index">
+                {{item.team.name}}
+              </view>
+            </view>
+            
+            <!-- 表格内容 -->
+            <view class="table-row" wx:for="{{matchTable}}" wx:for-item="row" wx:for-index="rowIndex" wx:key="rowIndex">
+              <view class="table-cell player-name-cell">{{row.player ? row.player.name : row.team.name}}</view>
+              <view class="table-cell {{match.isSelfMatch ? 'self-match-cell' : 'match-cell score-cell'}}" 
+                    wx:for="{{row.matches}}" 
+                    wx:for-item="match" 
+                    wx:for-index="colIndex" 
+                    wx:key="colIndex"
+                    data-row="{{rowIndex}}"
+                    data-col="{{colIndex}}"
+                    bindtap="{{!match.isSelfMatch ? 'showScoreInputModal' : ''}}">
+                <view class="match-score">{{match.score || '-'}}</view>
+              </view>
+            </view>
+          </view>
+        </block>
+      </block>
+      
+      <!-- 瑞士轮模式表格 -->
+      <block wx:else>
+        <view class="swiss-matches">
+          <view class="swiss-match" wx:for="{{matchTable}}" wx:key="index">
+            <view class="swiss-match-players">
+              <view class="swiss-match-player">
+                {{mode === 'singles' ? item.player1.name : item.team1.name}}
+              </view>
+              <view class="swiss-match-vs">vs</view>
+              <view class="swiss-match-player">
+                {{mode === 'singles' ? item.player2.name : item.team2.name}}
+              </view>
+            </view>
+            <view class="swiss-match-score" bindtap="showScoreInputModal" data-match-index="{{index}}">
+              <view class="match-score">{{item.score || '-'}}</view>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 下一轮按钮 -->
+        <button class="next-round-btn" bindtap="nextRound" wx:if="{{currentRound < totalRounds}}">
+          进入下一轮
+        </button>
+      </block>
+      
+      <!-- 比分格式提示 -->
+      <view class="score-format-hint">
+        点击表格，输入比分
+      </view>
+    </view>
+
+    <!-- 结束比赛按钮 -->
+    <view class="button-container">
+      <button class="view-ranking-btn" bindtap="showRankingModal">查看排名</button>
+      <button class="end-match-btn" bindtap="endMatch" wx:if="{{!isMatchEnded}}">结束比赛</button>
+    </view>
+  </block>
+
+  <!-- 选手选择弹窗 -->
+  <view class="modal" wx:if="{{showPlayerSelectModal}}">
+    <view class="modal-mask" bindtap="hidePlayerSelect"></view>
+    <view class="modal-content">
+      <view class="modal-header">
+        <text class="modal-title">选择参赛选手</text>
+        <text class="selected-count">已选择: {{selectedPlayers.length}}{{mode === 'doubles' ? '/4' : ''}}</text>
+      </view>
+      <view class="modal-body">
+        <!-- 选手选择列表 -->
+        <view class="player-select-list">
+          <block wx:for="{{players}}" wx:key="id">
+            <view class="player-select-item {{isPlayerSelected(item.id) ? 'selected' : ''}}" 
+                  data-id="{{item.id}}" 
+                  bindtap="togglePlayerSelection">
+              <view class="player-info">
+                <image class="player-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}"></image>
+                <view class="player-details">
+                  <view class="player-name">
+                    {{item.name}}
+                    <text wx:if="{{item.isTemporary}}" class="temp-player-tag">临时</text>
+                  </view>
+                  <view class="player-score">排位分: {{item.score || 1000}}</view>
+                </view>
+              </view>
+              <view class="player-select-status">
+                <view class="select-indicator {{isPlayerSelected(item.id) ? 'selected' : ''}}">
+                  <icon wx:if="{{isPlayerSelected(item.id)}}" 
+                        type="success" 
+                        size="20" 
+                        color="#ffffff"></icon>
+                </view>
+              </view>
+            </view>
+          </block>
+        </view>
+      </view>
+      
+      <!-- 已选择的选手列表移到这里，固定在底部 -->
+      <view class="selected-players-section" wx:if="{{selectedPlayers.length > 0}}">
+        <view class="section-title">已选择的选手</view>
+        <view class="selected-players-list">
+          <!-- 单打模式显示 -->
+          <block wx:if="{{mode !== 'doubles'}}">
+            <view class="selected-player-tag" wx:for="{{selectedPlayers}}" wx:key="id">
+              {{item.name}}
+              <view class="remove-player" catchtap="removeSelectedPlayer" data-player-id="{{item.id}}">×</view>
+            </view>
+          </block>
+          
+          <!-- 双打模式显示 -->
+          <block wx:else>
+            <!-- 按照组合显示选手 -->
+            <block wx:for="{{selectedPlayers}}" wx:key="id" wx:for-index="idx" wx:if="{{idx % 2 === 0}}">
+              <view class="selected-player-tag team" wx:if="{{idx + 1 < selectedPlayers.length}}">
+                {{selectedPlayers[idx].name}} + {{selectedPlayers[idx+1].name}}
+                <view class="remove-player" catchtap="removeDoublesTeam" data-index="{{idx}}">×</view>
+              </view>
+              <view class="selected-player-tag" wx:else>
+                {{selectedPlayers[idx].name}}
+                <view class="remove-player" catchtap="removeSelectedPlayer" data-player-id="{{selectedPlayers[idx].id}}">×</view>
+              </view>
+            </block>
+          </block>
+        </view>
+      </view>
+      
+      <view class="modal-footer">
+        <!-- 添加临时选手按钮移到这里，固定在底部 -->
+        <view class="add-temp-player-btn" bindtap="showAddTempPlayerModal">
+          <text class="add-icon">+</text>
+          <text>添加临时选手</text>
+        </view>
+        <view class="modal-buttons">
+          <button class="modal-btn cancel" bindtap="hidePlayerSelect">取消</button>
+          <button class="modal-btn confirm" bindtap="confirmPlayerSelection">确定</button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 添加临时选手弹窗 -->
+  <view class="modal" wx:if="{{showAddTempPlayerModal}}">
+    <view class="modal-mask" bindtap="hideAddTempPlayerModal"></view>
+    <view class="modal-content">
+      <view class="modal-header">
+        <text class="modal-title">添加临时选手</text>
+      </view>
+      <view class="modal-body">
+        <view class="form-item">
+          <view class="form-label">选手姓名</view>
+          <input class="form-input" placeholder="请输入选手姓名" value="{{tempPlayerName}}" bindinput="onTempPlayerNameInput" />
+        </view>
+        <view class="form-item">
+          <view class="form-label">性别</view>
+          <view class="gender-selector">
+            <view class="gender-option {{tempPlayerGender === 'male' ? 'selected' : ''}}" 
+                  bindtap="selectTempPlayerGender" 
+                  data-gender="male">
+              男
+            </view>
+            <view class="gender-option {{tempPlayerGender === 'female' ? 'selected' : ''}}" 
+                  bindtap="selectTempPlayerGender" 
+                  data-gender="female">
+              女
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="modal-footer">
+        <view class="modal-buttons">
+          <button class="modal-btn cancel" bindtap="hideAddTempPlayerModal">取消</button>
+          <button class="modal-btn confirm" bindtap="addTempPlayer">确定</button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 比分输入弹窗 -->
+  <view class="score-input-modal" wx:if="{{showScoreInputModal}}">
+    <view class="score-input-content">
+      <view class="score-input-header">
+        <view class="score-input-title">输入比分</view>
+        <view class="score-input-close" bindtap="hideScoreInputModal">×</view>
+      </view>
+      
+      <view class="score-teams">
+        <view class="score-team {{activeScoreInput === 'team' ? 'active' : ''}}" bindtap="setActiveScoreInput" data-input="team">
+          <view class="score-team-name">{{currentMatch.team.name}}</view>
+          <view class="score-input-box">
+            <input type="number" value="{{teamScore}}" disabled="true" class="input-field" />
+          </view>
+        </view>
+        
+        <view class="score-vs">VS</view>
+        
+        <view class="score-team {{activeScoreInput === 'opponent' ? 'active' : ''}}" bindtap="setActiveScoreInput" data-input="opponent">
+          <view class="score-team-name">{{currentMatch.opponent.name}}</view>
+          <view class="score-input-box">
+            <input type="number" value="{{opponentScore}}" disabled="true" class="input-field" />
+          </view>
+        </view>
+      </view>
+      
+      <!-- 快捷数字按钮 -->
+      <view class="score-shortcuts">
+        <view class="shortcut-row">
+          <view class="shortcut-btn" bindtap="inputQuickNumber" data-number="11">11</view>
+          <view class="shortcut-btn" bindtap="inputQuickNumber" data-number="15">15</view>
+          <view class="shortcut-btn" bindtap="inputQuickNumber" data-number="21">21</view>
+        </view>
+      </view>
+      
+      <!-- 数字键盘 -->
+      <view class="number-keyboard">
+        <view class="keyboard-row">
+          <view class="keyboard-btn" bindtap="inputNumber" data-number="1">1</view>
+          <view class="keyboard-btn" bindtap="inputNumber" data-number="2">2</view>
+          <view class="keyboard-btn" bindtap="inputNumber" data-number="3">3</view>
+        </view>
+        <view class="keyboard-row">
+          <view class="keyboard-btn" bindtap="inputNumber" data-number="4">4</view>
+          <view class="keyboard-btn" bindtap="inputNumber" data-number="5">5</view>
+          <view class="keyboard-btn" bindtap="inputNumber" data-number="6">6</view>
+        </view>
+        <view class="keyboard-row">
+          <view class="keyboard-btn" bindtap="inputNumber" data-number="7">7</view>
+          <view class="keyboard-btn" bindtap="inputNumber" data-number="8">8</view>
+          <view class="keyboard-btn" bindtap="inputNumber" data-number="9">9</view>
+        </view>
+        <view class="keyboard-row">
+          <view class="keyboard-btn clear" bindtap="clearNumber">清零</view>
+          <view class="keyboard-btn" bindtap="inputNumber" data-number="0">0</view>
+          <view class="keyboard-btn delete" bindtap="deleteNumber">删除</view>
+        </view>
+      </view>
+      
+      <view class="score-input-actions">
+        <button class="score-input-btn cancel" bindtap="hideScoreInputModal">取消</button>
+        <button class="score-input-btn confirm" bindtap="confirmScore">确认</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 排名结果弹窗 -->
+  <view class="ranking-modal" wx:if="{{showRankingModal}}">
+    <view class="modal-mask"></view>
+    <view class="ranking-content">
+      <view class="ranking-header">
+        <view class="ranking-title">比赛排名结果</view>
+        <view class="ranking-close" bindtap="hideRankingModal">×</view>
+      </view>
+      
+      <view class="ranking-body">
+        <!-- 比赛统计信息 -->
+        <view class="ranking-summary">
+          <view class="summary-title">比赛统计</view>
+          <view class="summary-info">
+            <text>比赛类型: {{tournamentType === 'swiss' ? '瑞士轮' : '完全循环赛'}}</text>
+            <text>比赛模式: {{mode === 'singles' ? '单打' : '双打'}}</text>
+            <text>参赛选手: {{playerRankings.length}} 名</text>
+          </view>
+        </view>
+        
+        <view class="ranking-table">
+          <view class="ranking-table-header">
+            <view class="ranking-cell rank">排名</view>
+            <view class="ranking-cell name">选手</view>
+            <view class="ranking-cell stats">胜/负</view>
+            <view class="ranking-cell points">净胜分</view>
+          </view>
+          
+          <view class="ranking-table-body">
+            <view class="ranking-row {{index === 0 ? 'champion' : ''}}" wx:for="{{playerRankings}}" wx:key="id" wx:for-index="index">
+              <view class="ranking-cell rank">{{index + 1}}</view>
+              <view class="ranking-cell name">
+                {{mode === 'singles' ? item.name : item.name}}
+              </view>
+              <view class="ranking-cell stats">{{item.wins || 0}}/{{item.losses || 0}}</view>
+              <view class="ranking-cell points">{{item.scoreDiff}}</view>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 比赛详情 -->
+        <view class="match-details" wx:if="{{tournamentType === 'swiss'}}">
+          <view class="details-title">比赛详情</view>
+          <view class="details-note">注：排名结果包含所有轮次的比赛数据</view>
+          
+          <view class="round-summary" wx:for="{{playerRankings[0].matches}}" wx:key="round" wx:for-index="roundIndex" wx:if="{{roundIndex < 3}}">
+            <view class="round-title">第 {{item.round}} 轮</view>
+          </view>
+        </view>
+      </view>
+      
+      <view class="ranking-footer">
+        <button class="ranking-btn confirm" bindtap="confirmRanking">确认</button>
+      </view>
+    </view>
+  </view>
+</view> 

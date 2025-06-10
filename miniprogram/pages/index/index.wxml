@@ -1,0 +1,215 @@
+<view class="container">
+  <!-- 标题 -->
+  <view class="page-title" data-text="嘴强排位">嘴强排位</view>
+  
+  <!-- 主内容区域 -->
+  <view class="main-content">
+    <view class="score-container">
+      <!-- 左侧队伍 -->
+      <view class="team-container left-team">
+        <view class="score-box" bindtap="showScoreInput" data-side="left">
+          <text class="score-text">{{leftScore}}</text>
+        </view>
+        
+        <view class="player-container">
+          <view class="player-box" bindtap="selectPlayer" data-side="left" data-index="0">
+            <block wx:if="{{leftPlayers.length > 0}}">
+              <view class="player-list-compact {{leftPlayers.length > 1 ? 'multiple' : ''}}">
+                <view wx:for="{{leftPlayers}}" wx:key="id" class="player-item-compact">
+                  <image class="player-avatar-small" src="/images/default-avatar.png"></image>
+                  <text class="player-name-small">{{item.name}}</text>
+                </view>
+              </view>
+            </block>
+            <block wx:else>
+              <image class="player-avatar" src="/images/default-avatar.png"></image>
+              <text class="player-name">选择选手</text>
+            </block>
+          </view>
+        </view>
+      </view>
+      
+      <view class="vs-text">VS</view>
+      
+      <!-- 右侧队伍 -->
+      <view class="team-container right-team">
+        <view class="score-box" bindtap="showScoreInput" data-side="right">
+          <text class="score-text">{{rightScore}}</text>
+        </view>
+        
+        <view class="player-container">
+          <view class="player-box" bindtap="selectPlayer" data-side="right" data-index="0">
+            <block wx:if="{{rightPlayers.length > 0}}">
+              <view class="player-list-compact {{rightPlayers.length > 1 ? 'multiple' : ''}}">
+                <view wx:for="{{rightPlayers}}" wx:key="id" class="player-item-compact">
+                  <image class="player-avatar-small" src="/images/default-avatar.png"></image>
+                  <text class="player-name-small">{{item.name}}</text>
+                </view>
+              </view>
+            </block>
+            <block wx:else>
+              <image class="player-avatar" src="/images/default-avatar.png"></image>
+              <text class="player-name">选择选手</text>
+            </block>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 底部按钮 -->
+  <view style="width:100%; display:flex; justify-content:center; padding:30rpx 0; margin-top:auto; flex-direction: column; align-items: center;">
+    <view class="custom-btn-container">
+      <view class="custom-btn clear-btn" bindtap="clearAll">清空</view>
+      <view class="custom-btn submit-btn" bindtap="submitMatch">提交比赛</view>
+    </view>
+    
+    <!-- 比赛模式按钮 -->
+    <view class="match-mode-btn" bindtap="showMatchMode">
+      <view class="flame-icon"></view>
+      <text>比赛mode</text>
+    </view>
+  </view>
+</view>
+
+<!-- 分数输入弹窗 -->
+<view class="modal" wx:if="{{showScoreModal}}">
+  <view class="modal-mask" bindtap="hideScoreModal"></view>
+  <view class="modal-content">
+    <view class="modal-header">请输入分数</view>
+    
+    <view class="modal-body">
+      <view class="score-input">
+        <input type="number" value="{{tempScore}}" bindinput="onScoreInput" focus="{{false}}" disabled="true" maxlength="2" />
+      </view>
+      
+      <view class="quick-score">
+        <view class="quick-score-item" bindtap="quickSelectScore" data-score="11">11分</view>
+        <view class="quick-score-item" bindtap="quickSelectScore" data-score="15">15分</view>
+        <view class="quick-score-item" bindtap="quickSelectScore" data-score="21">21分</view>
+      </view>
+      
+      <view class="score-keyboard">
+        <view class="keyboard-row">
+          <view class="keyboard-key" bindtap="inputScoreDigit" data-digit="1">1</view>
+          <view class="keyboard-key" bindtap="inputScoreDigit" data-digit="2">2</view>
+          <view class="keyboard-key" bindtap="inputScoreDigit" data-digit="3">3</view>
+        </view>
+        <view class="keyboard-row">
+          <view class="keyboard-key" bindtap="inputScoreDigit" data-digit="4">4</view>
+          <view class="keyboard-key" bindtap="inputScoreDigit" data-digit="5">5</view>
+          <view class="keyboard-key" bindtap="inputScoreDigit" data-digit="6">6</view>
+        </view>
+        <view class="keyboard-row">
+          <view class="keyboard-key" bindtap="inputScoreDigit" data-digit="7">7</view>
+          <view class="keyboard-key" bindtap="inputScoreDigit" data-digit="8">8</view>
+          <view class="keyboard-key" bindtap="inputScoreDigit" data-digit="9">9</view>
+        </view>
+        <view class="keyboard-row">
+          <view class="keyboard-key keyboard-clear" bindtap="clearScoreInput">清零</view>
+          <view class="keyboard-key" bindtap="inputScoreDigit" data-digit="0">0</view>
+          <view class="keyboard-key keyboard-confirm theme-bg" bindtap="confirmScore">确认</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 选手选择弹窗 -->
+<view class="modal" wx:if="{{showPlayerModal}}">
+  <view class="modal-mask" bindtap="hidePlayerModal"></view>
+  <view class="modal-content player-select-modal">
+    <view class="modal-header">
+      <text>选择选手</text>
+    </view>
+    
+    <!-- 添加已选择选手预览区 -->
+    <view class="selected-preview">
+      <text class="preview-title">已选择：</text>
+      <view class="preview-players">
+        <view wx:for="{{tempSelectedPlayers}}" wx:key="id" class="preview-player">
+          <text>{{item.name}}</text>
+          <text class="remove-player" bindtap="removeSelectedPlayer" data-index="{{index}}">×</text>
+        </view>
+      </view>
+    </view>
+    
+    <view class="modal-body">
+      <scroll-view scroll-y="true" class="player-list">
+        <view 
+          class="player-item"
+          wx:for="{{allPlayers}}" 
+          wx:key="id" 
+          bindtap="selectPlayerItem" 
+          data-player="{{item}}"
+        >
+          <text class="player-item-name">{{item.name}}</text>
+          <text class="player-item-gender">{{item.gender === 'female' ? '女' : '男'}}</text>
+        </view>
+      </scroll-view>
+    </view>
+      
+    <view class="modal-footer">
+      <view class="modal-btn modal-btn-clear" bindtap="clearSelectedPlayers">清除</view>
+      <view class="modal-btn modal-btn-primary" bindtap="confirmSelectedPlayers">确认</view>
+    </view>
+  </view>
+</view>
+
+<!-- 比赛模式选择弹窗 -->
+<view class="modal" wx:if="{{showMatchModeModal}}">
+  <view class="modal-mask" bindtap="hideMatchModeModal"></view>
+  <view class="modal-content">
+    <view class="modal-header">
+      <text>选择比赛模式</text>
+    </view>
+    <view class="modal-body">
+      <view class="match-mode-options">
+        <view class="match-mode-option" bindtap="selectMatchMode" data-mode="singles">
+          <view class="match-mode-icon singles-icon"></view>
+          <text class="match-mode-text">单打mode</text>
+        </view>
+        <view class="match-mode-option" bindtap="selectMatchMode" data-mode="doubles">
+          <view class="match-mode-icon doubles-icon"></view>
+          <text class="match-mode-text">双打mode</text>
+        </view>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <view class="modal-btn modal-btn-primary" bindtap="hideMatchModeModal">取消</view>
+    </view>
+  </view>
+</view>
+
+<!-- 比赛类型选择弹窗 -->
+<view class="modal" wx:if="{{showMatchTypeModal}}">
+  <view class="modal-mask" bindtap="hideMatchTypeModal"></view>
+  <view class="modal-content">
+    <view class="modal-header">
+      <text>选择比赛类型</text>
+    </view>
+    <view class="modal-body">
+      <view class="match-type-options">
+        <view class="match-type-option" bindtap="selectMatchType" data-type="round_robin">
+          <view class="match-type-icon round-robin-icon"></view>
+          <text class="match-type-text">大循环</text>
+        </view>
+        <view class="match-type-option" bindtap="selectMatchType" data-type="swiss">
+          <view class="match-type-icon round-robin-icon"></view>
+          <text class="match-type-text">大循环(瑞士轮)</text>
+        </view>
+        <view class="match-type-option" bindtap="selectMatchType" data-type="random_rotation" wx:if="{{selectedMatchMode === 'doubles'}}">
+          <view class="match-type-icon round-robin-icon"></view>
+          <text class="match-type-text">随机轮转</text>
+        </view>
+        <view class="match-type-option" bindtap="selectMatchType" data-type="mixed_random" wx:if="{{selectedMatchMode === 'doubles'}}">
+          <view class="match-type-icon round-robin-icon"></view>
+          <text class="match-type-text">混双轮转</text>
+        </view>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <view class="modal-btn modal-btn-primary" bindtap="hideMatchTypeModal">取消</view>
+    </view>
+  </view>
+</view> 

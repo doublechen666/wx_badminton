@@ -1,0 +1,871 @@
+/* 页面容器 */
+.container {
+  padding: 20rpx;
+  box-sizing: border-box;
+}
+
+/* 页面标题样式 */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30rpx;
+  flex-wrap: wrap;
+}
+
+.page-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.mode-tag {
+  background-color: #07C160;
+  color: white;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+}
+
+/* 开始页面样式 */
+.start-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60rpx 0;
+}
+
+.start-image {
+  width: 240rpx;
+  height: 240rpx;
+  margin-bottom: 40rpx;
+}
+
+.start-text {
+  font-size: 32rpx;
+  color: #666;
+  margin-bottom: 60rpx;
+}
+
+.primary-btn {
+  background-color: #07C160;
+  color: white;
+  width: 80%;
+  height: 90rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 45rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+/* 选手列表样式 */
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin: 20rpx 0;
+}
+
+.player-list {
+  margin-bottom: 30rpx;
+}
+
+.player-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.player-tag {
+  background-color: #f0f0f0;
+  padding: 10rpx 20rpx;
+  border-radius: 30rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+
+/* 比赛列表样式 */
+.match-list-container {
+  margin-bottom: 40rpx;
+  width: 100%;
+}
+
+.match-list-scroll {
+  max-height: 800rpx;
+  width: 100%;
+}
+
+.match-list {
+  width: 100%;
+}
+
+.match-item {
+  background-color: white;
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+  width: 100%;
+}
+
+.match-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15rpx 20rpx;
+  background-color: #f8f8f8;
+  border-bottom: 1px solid #eee;
+}
+
+.match-number {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.match-status {
+  font-size: 24rpx;
+  color: #ff9800;
+  padding: 5rpx 15rpx;
+  border-radius: 30rpx;
+  background-color: rgba(255, 152, 0, 0.1);
+}
+
+.match-status.completed {
+  color: #4caf50;
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.match-content {
+  display: flex;
+  padding: 20rpx;
+  align-items: center;
+}
+
+.match-team {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.match-player {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10rpx;
+}
+
+.match-player:last-child {
+  margin-bottom: 0;
+}
+
+.player-avatar-small {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  margin-right: 10rpx;
+}
+
+.player-name-small {
+  font-size: 26rpx;
+  color: #333;
+}
+
+.match-score {
+  display: flex;
+  align-items: center;
+  margin: 0 20rpx;
+}
+
+.score-text {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  width: 40rpx;
+  text-align: center;
+}
+
+.score-separator {
+  font-size: 30rpx;
+  color: #999;
+  margin: 0 10rpx;
+}
+
+/* 按钮容器 */
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  width: 90%;
+  margin: 30rpx auto;
+  align-items: center;
+}
+
+/* 查看排名按钮 */
+.view-ranking-btn {
+  background-color: #4caf50;
+  color: white;
+  flex: 1;
+  height: 90rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 45rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-right: 20rpx;
+}
+
+/* 结束比赛按钮 */
+.end-match-btn {
+  background-color: #e74c3c;
+  color: white;
+  flex: 1;
+  height: 90rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 45rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-left: 20rpx;
+  margin: 0 0 0 20rpx;
+}
+
+/* 模态框样式 */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  position: relative;
+  width: 90%;
+  max-width: 650rpx;
+  background-color: white;
+  border-radius: 12rpx;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-title {
+  font-size: 34rpx;
+  font-weight: bold;
+}
+
+.selected-count {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 800rpx;
+  position: relative;
+  padding: 30rpx;
+}
+
+.player-select-list {
+  padding: 0;
+}
+
+.player-select-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx;
+  border-bottom: 1rpx solid #eee;
+}
+
+.player-select-item.selected {
+  background-color: rgba(7, 193, 96, 0.1);
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+}
+
+.player-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  margin-right: 20rpx;
+}
+
+.player-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.player-score {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.player-select-status {
+  display: flex;
+  align-items: center;
+}
+
+.select-indicator {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 2rpx solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.select-indicator.selected {
+  background-color: #07C160;
+  border-color: #07C160;
+}
+
+.temp-player-tag {
+  display: inline-block;
+  font-size: 20rpx;
+  background-color: #ff9800;
+  color: #fff;
+  padding: 2rpx 10rpx;
+  border-radius: 10rpx;
+  margin-left: 10rpx;
+  vertical-align: middle;
+}
+
+/* 已选择选手列表 */
+.selected-players-section {
+  padding: 20rpx 30rpx;
+  border-top: 1rpx solid #eee;
+  background-color: #f9f9f9;
+}
+
+.section-title {
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 20rpx;
+}
+
+.selected-players-list {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.selected-player-tag {
+  display: flex;
+  align-items: center;
+  background-color: #e8f5e9;
+  color: #4caf50;
+  padding: 10rpx 20rpx;
+  border-radius: 30rpx;
+  margin-right: 15rpx;
+  margin-bottom: 15rpx;
+  font-size: 26rpx;
+}
+
+.selected-player-tag.team {
+  background-color: #e3f2fd;
+  color: #2196f3;
+}
+
+.remove-player {
+  margin-left: 10rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+  width: 30rpx;
+  height: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-footer {
+  display: flex;
+  flex-direction: column;
+  padding: 20rpx;
+  justify-content: space-between;
+  border-top: 1rpx solid #eee;
+  background-color: #fff;
+}
+
+.add-temp-player-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15rpx 0;
+  margin-bottom: 15rpx;
+  background-color: #f5f5f5;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #666;
+}
+
+.add-icon {
+  margin-right: 10rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.modal-btn {
+  flex: 1;
+  height: 90rpx;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  font-size: 32rpx;
+  border-radius: 8rpx;
+  margin: 0 10rpx;
+  padding: 0;
+}
+
+.modal-btn::after {
+  border: none;
+}
+
+.cancel {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.confirm {
+  background-color: #07C160;
+  color: white;
+}
+
+/* 性别选择器 */
+.gender-selector {
+  display: flex;
+  margin-top: 10rpx;
+}
+
+.gender-option {
+  flex: 1;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+  margin-right: 20rpx;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.gender-option:last-child {
+  margin-right: 0;
+}
+
+.gender-option.selected {
+  background-color: #07C160;
+  color: white;
+}
+
+/* 表单项样式 */
+.form-item {
+  margin-bottom: 30rpx;
+}
+
+.form-label {
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.form-input {
+  width: 100%;
+  height: 80rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+/* 分数输入弹窗样式 */
+.score-input-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.score-input-content {
+  width: 90%;
+  background-color: #fff;
+  border-radius: 12rpx;
+  padding: 30rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.score-input-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+
+.score-input-title {
+  font-size: 36rpx;
+  font-weight: bold;
+}
+
+.score-input-close {
+  font-size: 40rpx;
+  color: #999;
+  padding: 10rpx;
+}
+
+.score-teams {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40rpx;
+}
+
+.score-team {
+  flex: 1;
+  text-align: center;
+}
+
+.score-team-name {
+  font-size: 28rpx;
+  margin-bottom: 20rpx;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.score-vs {
+  font-size: 28rpx;
+  color: #999;
+  margin: 0 20rpx;
+}
+
+.score-input-box {
+  width: 100rpx;
+  height: 100rpx;
+  border: 2rpx solid #ddd;
+  border-radius: 8rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+}
+
+.score-input-box .input-field {
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  font-size: 40rpx;
+  font-weight: bold;
+}
+
+.score-team.active .score-input-box {
+  border: 2rpx solid #07c160;
+  background-color: rgba(7, 193, 96, 0.1);
+}
+
+.score-shortcuts {
+  margin-bottom: 40rpx;
+}
+
+.shortcut-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.shortcut-btn {
+  flex: 1;
+  height: 80rpx;
+  background-color: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 8rpx;
+  margin: 0 10rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.number-keyboard {
+  margin-bottom: 30rpx;
+}
+
+.keyboard-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15rpx;
+}
+
+.keyboard-btn {
+  flex: 1;
+  height: 90rpx;
+  background-color: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 8rpx;
+  margin: 0 10rpx;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.keyboard-btn:active {
+  background-color: #e0e0e0;
+}
+
+.keyboard-btn.clear {
+  background-color: #ffebee;
+  color: #f44336;
+  font-size: 28rpx;
+}
+
+.keyboard-btn.delete {
+  background-color: #e8f5e9;
+  color: #4caf50;
+  font-size: 28rpx;
+}
+
+.score-input-actions {
+  display: flex;
+  justify-content: space-between;
+}
+
+.score-input-btn {
+  flex: 1;
+  height: 80rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 8rpx;
+  font-size: 32rpx;
+  margin: 0 10rpx;
+}
+
+.score-input-btn.cancel {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.score-input-btn.confirm {
+  background-color: #07c160;
+  color: #fff;
+}
+
+/* 排名结果弹窗样式优化 */
+.ranking-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ranking-content {
+  position: relative;
+  width: 90%;
+  max-height: 80%;
+  background-color: white;
+  border-radius: 16rpx;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.ranking-header {
+  padding: 30rpx;
+  text-align: center;
+  border-bottom: 1rpx solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f8f8f8;
+}
+
+.ranking-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  flex: 1;
+  text-align: center;
+}
+
+.ranking-close {
+  font-size: 40rpx;
+  color: #999;
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ranking-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20rpx;
+}
+
+/* 比赛统计信息样式 */
+.ranking-summary {
+  background-color: #f9f9f9;
+  border-radius: 8rpx;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.summary-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
+  border-left: 4rpx solid #07C160;
+  padding-left: 10rpx;
+}
+
+.summary-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.summary-info text {
+  font-size: 26rpx;
+  color: #666;
+}
+
+/* 排名表格样式优化 */
+.ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20rpx;
+  background-color: #fff;
+  border-radius: 8rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.05);
+}
+
+.ranking-table-header {
+  display: flex;
+  background-color: #f0f0f0;
+  font-weight: bold;
+  padding: 20rpx 0;
+}
+
+.ranking-row {
+  display: flex;
+  border-bottom: 1rpx solid #eee;
+  padding: 16rpx 0;
+}
+
+.ranking-row:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.ranking-row.champion {
+  background-color: #fff8e1;
+}
+
+.ranking-cell {
+  padding: 10rpx;
+  text-align: center;
+  font-size: 28rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranking-cell.rank {
+  width: 15%;
+  font-weight: bold;
+}
+
+.ranking-cell.name {
+  width: 45%;
+  text-align: left;
+  padding-left: 20rpx;
+}
+
+.ranking-cell.stats {
+  width: 20%;
+}
+
+.ranking-cell.points {
+  width: 20%;
+  font-weight: bold;
+  color: #07C160;
+}
+
+.ranking-footer {
+  padding: 20rpx;
+  border-top: 1rpx solid #eee;
+  display: flex;
+  justify-content: center;
+}
+
+.ranking-btn {
+  width: 80%;
+  height: 80rpx;
+  text-align: center;
+  border-radius: 40rpx;
+  font-size: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0;
+}
+
+.ranking-btn.confirm {
+  background-color: #07C160;
+  color: white;
+} 

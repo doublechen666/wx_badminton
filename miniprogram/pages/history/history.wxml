@@ -1,0 +1,345 @@
+<view class="container">
+  <!-- 头部区域 - 重新布局 -->
+  <view class="header">
+    <view class="h2h-title">H2H</view>
+    <view class="header-subtitle">历史对战记录</view>
+  </view>
+  
+  <!-- 调整为横向显示的当前积分 -->
+  <view class="score-container-horizontal">
+    <text class="score-label">当前排位分</text>
+    <view class="score-value-container">
+      <text class="score-number">{{playerInfo.score || 1000}}</text>
+      <text class="score-refresh-hint"></text>
+    </view>
+  </view>
+  
+  <!-- 添加当前页面胜率显示 -->
+  <view class="score-container-horizontal">
+    <text class="score-label">当前页面胜率</text>
+    <view class="score-value-container">
+      <text class="score-number">{{stats.totalPercent || 0}}%</text>
+      <text class="score-matches">({{stats.totalWins || 0}}胜{{stats.totalLosses || 0}}负)</text>
+    </view>
+  </view>
+  
+  <!-- 筛选按钮区域 -->
+  <view class="filter-section">
+    <!-- 仅选择自己 -->
+    <view class="filter-btn {{filterSelf ? 'active' : ''}}" bindtap="toggleSelfFilter">
+      <text>仅自己</text>
+    </view>
+    
+    <!-- 选择己方 -->
+    <view class="filter-btn {{hasTeamFilter ? 'active' : ''}}" bindtap="showTeamFilterModal">
+      <text>选择己方</text>
+    </view>
+    
+    <!-- 选择对手 -->
+    <view class="filter-btn {{hasOpponentFilter ? 'active' : ''}}" bindtap="showOpponentFilterModal">
+      <text>选择对手</text>
+    </view>
+  </view>
+  
+  <!-- 历史记录列表 - 填满剩余高度 -->
+  <view class="history-list">
+    <scroll-view scroll-y="true" class="history-scroll" scroll-into-view="{{scrollToView}}" scroll-with-animation="true">
+      <!-- 无记录提示 -->
+      <view class="no-records" wx:if="{{filteredMatches.length === 0}}">
+        <text wx:if="{{allMatches.length === 0}}">暂无比赛记录</text>
+        <text wx:else>暂无符合筛选条件的对战记录</text>
+        <view class="no-records-tip">
+          <text>提示: 您可以通过主页的比赛模式创建新的比赛记录</text>
+        </view>
+      </view>
+      
+      <view class="history-item" wx:for="{{filteredMatches}}" wx:key="id">
+        <view class="match-date">{{item.displayDate}}</view>
+        
+        <view class="match-content">
+          <!-- 左侧队伍 -->
+          <view class="team {{item.leftWin ? 'win' : 'lose'}}">
+            <!-- 单打 -->
+            <block wx:if="{{item.leftTeam.length === 1}}">
+              <view class="player">
+                <image class="player-avatar" src="{{item.leftTeam[0].avatarUrl || '/images/default-avatar.png'}}" catchtap="showPlayerStats" data-player-id="{{item.leftTeam[0].id}}"></image>
+                <text class="player-name" catchtap="showPlayerStats" data-player-id="{{item.leftTeam[0].id}}">{{item.leftTeam[0].name}}</text>
+              </view>
+            </block>
+            
+            <!-- 双打 -->
+            <block wx:else>
+              <view class="double-team">
+                <view class="player">
+                  <image class="player-avatar" src="{{item.leftTeam[0].avatarUrl || '/images/default-avatar.png'}}" catchtap="showPlayerStats" data-player-id="{{item.leftTeam[0].id}}"></image>
+                  <text class="player-name" catchtap="showPlayerStats" data-player-id="{{item.leftTeam[0].id}}">{{item.leftTeam[0].name}}</text>
+                </view>
+                <view class="player">
+                  <image class="player-avatar" src="{{item.leftTeam[1].avatarUrl || '/images/default-avatar.png'}}" catchtap="showPlayerStats" data-player-id="{{item.leftTeam[1].id}}"></image>
+                  <text class="player-name" catchtap="showPlayerStats" data-player-id="{{item.leftTeam[1].id}}">{{item.leftTeam[1].name}}</text>
+                </view>
+              </view>
+            </block>
+          </view>
+          
+          <!-- 比分 -->
+          <view class="score">
+            <text class="score-number {{item.leftWin ? 'win' : ''}}">{{item.leftScore}}</text>
+            <text class="score-separator">:</text>
+            <text class="score-number {{!item.leftWin ? 'win' : ''}}">{{item.rightScore}}</text>
+          </view>
+          
+          <!-- 右侧队伍 -->
+          <view class="team {{!item.leftWin ? 'win' : 'lose'}}">
+            <!-- 单打 -->
+            <block wx:if="{{item.rightTeam.length === 1}}">
+              <view class="player">
+                <image class="player-avatar" src="{{item.rightTeam[0].avatarUrl || '/images/default-avatar.png'}}" catchtap="showPlayerStats" data-player-id="{{item.rightTeam[0].id}}"></image>
+                <text class="player-name" catchtap="showPlayerStats" data-player-id="{{item.rightTeam[0].id}}">{{item.rightTeam[0].name}}</text>
+              </view>
+            </block>
+            
+            <!-- 双打 -->
+            <block wx:else>
+              <view class="double-team">
+                <view class="player">
+                  <image class="player-avatar" src="{{item.rightTeam[0].avatarUrl || '/images/default-avatar.png'}}" catchtap="showPlayerStats" data-player-id="{{item.rightTeam[0].id}}"></image>
+                  <text class="player-name" catchtap="showPlayerStats" data-player-id="{{item.rightTeam[0].id}}">{{item.rightTeam[0].name}}</text>
+                </view>
+                <view class="player">
+                  <image class="player-avatar" src="{{item.rightTeam[1].avatarUrl || '/images/default-avatar.png'}}" catchtap="showPlayerStats" data-player-id="{{item.rightTeam[1].id}}"></image>
+                  <text class="player-name" catchtap="showPlayerStats" data-player-id="{{item.rightTeam[1].id}}">{{item.rightTeam[1].name}}</text>
+                </view>
+              </view>
+            </block>
+          </view>
+        </view>
+        
+        <!-- 积分变化 -->
+        <view class="rating-change">
+          <text class="rating-left {{item.leftWin ? 'gain' : 'loss'}}">{{item.leftWin ? '+' : '-'}}{{item.leftRatingChange}}</text>
+          <text class="rating-right {{!item.leftWin ? 'gain' : 'loss'}}">{{!item.leftWin ? '+' : '-'}}{{item.rightRatingChange}}</text>
+        </view>
+      </view>
+      
+      <!-- 添加一个底部元素作为滚动目标 -->
+      <view id="bottom-anchor" style="height: 1px;"></view>
+    </scroll-view>
+  </view>
+</view>
+
+<!-- 选择己方弹窗 -->
+<view class="modal" wx:if="{{showTeamModal}}">
+  <view class="modal-mask" bindtap="hideTeamFilterModal"></view>
+  <view class="modal-content">
+    <view class="modal-header">
+      <text>选择己方</text>
+    </view>
+    <view class="modal-body">
+      <view class="filter-option all-option" bindtap="selectAllTeams">
+        <text class="{{teamFilter.length === 0 ? 'selected' : ''}}">全部</text>
+      </view>
+      
+      <!-- 当前已选择的内容 -->
+      <view class="selected-filters" wx:if="{{teamFilter.length > 0}}">
+        <text class="selected-title">已选择:</text>
+        <view class="selected-tags">
+          <view class="selected-tag" wx:for="{{teamFilter}}" wx:key="index">
+            <text>{{item.type === 'single' ? '单打: ' : '双打: '}}{{item.name || '未知'}}</text>
+          </view>
+        </view>
+      </view>
+      
+      <scroll-view scroll-y="true" class="filter-list">
+        <!-- 单打选手 -->
+        <view class="filter-category">
+          <view class="filter-group-title">单打</view>
+          <view class="filter-options">
+            <view class="filter-option-item {{isTeamSelected(item.id, 'single') ? 'selected' : ''}}" 
+                wx:for="{{playersList}}" 
+                wx:key="id" 
+                data-id="{{item.id}}" 
+                data-type="single" 
+                bindtap="toggleTeamFilter">
+              {{item.name}}
+            </view>
+          </view>
+        </view>
+        
+        <!-- 双打组合 -->
+        <view class="filter-category">
+          <view class="filter-group-title">双打</view>
+          <view class="filter-options">
+            <view class="filter-option-item {{isTeamSelected(item.id, 'double') ? 'selected' : ''}}" 
+                wx:for="{{doubleTeamsList}}" 
+                wx:key="id" 
+                data-id="{{item.id}}" 
+                data-type="double" 
+                bindtap="toggleTeamFilter">
+              {{item.name}}
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+    
+    <view class="modal-footer">
+      <view class="modal-btn modal-btn-clear" bindtap="clearTeamFilter">清除</view>
+      <view class="modal-btn modal-btn-primary" bindtap="applyTeamFilter">确定</view>
+    </view>
+  </view>
+</view>
+
+<!-- 选择对手弹窗 -->
+<view class="modal" wx:if="{{showOpponentModal}}">
+  <view class="modal-mask" bindtap="hideOpponentFilterModal"></view>
+  <view class="modal-content">
+    <view class="modal-header">
+      <text>选择对手</text>
+    </view>
+    <view class="modal-body">
+      <view class="filter-option all-option" bindtap="selectAllOpponents">
+        <text class="{{opponentFilter.length === 0 ? 'selected' : ''}}">全部</text>
+      </view>
+      
+      <!-- 当前已选择的内容 -->
+      <view class="selected-filters" wx:if="{{opponentFilter.length > 0}}">
+        <text class="selected-title">已选择:</text>
+        <view class="selected-tags">
+          <view class="selected-tag" wx:for="{{opponentFilter}}" wx:key="index">
+            <text>{{item.type === 'single' ? '单打: ' : '双打: '}}{{item.name || '未知'}}</text>
+          </view>
+        </view>
+      </view>
+      
+      <scroll-view scroll-y="true" class="filter-list">
+        <!-- 单打对手 -->
+        <view class="filter-category">
+          <view class="filter-group-title">单打</view>
+          <view class="filter-options">
+            <view class="filter-option-item {{isOpponentSelected(item.id, 'single') ? 'selected' : ''}}" 
+                wx:for="{{availableOpponents.singles}}" 
+                wx:key="id" 
+                data-id="{{item.id}}" 
+                data-type="single" 
+                bindtap="toggleOpponentFilter">
+              {{item.name}}
+            </view>
+          </view>
+        </view>
+        
+        <!-- 双打对手 -->
+        <view class="filter-category">
+          <view class="filter-group-title">双打</view>
+          <view class="filter-options">
+            <view class="filter-option-item {{isOpponentSelected(item.id, 'double') ? 'selected' : ''}}" 
+                wx:for="{{availableOpponents.doubles}}" 
+                wx:key="id" 
+                data-id="{{item.id}}" 
+                data-type="double" 
+                bindtap="toggleOpponentFilter">
+              {{item.name}}
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+    
+    <view class="modal-footer">
+      <view class="modal-btn modal-btn-clear" bindtap="clearOpponentFilter">清除</view>
+      <view class="modal-btn modal-btn-primary" bindtap="applyOpponentFilter">确定</view>
+    </view>
+  </view>
+</view>
+
+<!-- 选手统计信息弹窗 -->
+<view class="modal" wx:if="{{showPlayerStatsModal}}">
+  <view class="modal-mask" bindtap="hidePlayerStatsModal"></view>
+  <view class="modal-content">
+    <view class="modal-header">
+      <text>选手统计</text>
+    </view>
+    <view class="modal-body stats-compact-layout">
+      <!-- 选手基本信息 - 更紧凑的布局 -->
+      <view class="player-stats-header">
+        <text class="stats-name">{{currentPlayerStats.name}}</text>
+        <text class="stats-score">排位分: {{currentPlayerStats.score || 1000}}</text>
+      </view>
+      
+      <!-- 总战绩 - 胜率和胜负场数在同一行 -->
+      <view class="stats-section">
+        <view class="stats-title">总战绩</view>
+        <view class="stats-row">
+          <view class="stats-value-container">
+            <text class="stats-number">{{currentPlayerStats.winRate}}</text>
+            <text class="stats-matches">({{currentPlayerStats.wins || 0}}胜{{currentPlayerStats.losses || 0}}负)</text>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 单打和双打战绩在同一行 -->
+      <view class="stats-section-row">
+        <view class="stats-section-half">
+          <view class="stats-title">单打</view>
+          <view class="stats-value-container">
+            <text class="stats-number">{{currentPlayerStats.singlesWinRate}}</text>
+            <text class="stats-matches">({{currentPlayerStats.singlesWins || 0}}胜{{currentPlayerStats.singlesLosses || 0}}负)</text>
+          </view>
+        </view>
+        
+        <view class="stats-section-half">
+          <view class="stats-title">各类双打</view>
+          <view class="stats-value-container">
+            <text class="stats-number">{{currentPlayerStats.doublesWinRate}}</text>
+            <text class="stats-matches">({{currentPlayerStats.doublesWins || 0}}胜{{currentPlayerStats.doublesLosses || 0}}负)</text>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 根据性别显示不同的双打类型统计 - 更紧凑布局 -->
+      <block wx:if="{{currentPlayerStats.gender === 'male'}}">
+        <view class="stats-section-row">
+          <view class="stats-section-half">
+            <view class="stats-title">男双</view>
+            <view class="stats-value-container">
+              <text class="stats-number">{{currentPlayerStats.maleDoublesWinRate}}</text>
+              <text class="stats-matches">({{currentPlayerStats.maleDoublesWins || 0}}胜{{currentPlayerStats.maleDoublesLosses || 0}}负)</text>
+            </view>
+          </view>
+          
+          <view class="stats-section-half">
+            <view class="stats-title">混双</view>
+            <view class="stats-value-container">
+              <text class="stats-number">{{currentPlayerStats.mixedDoublesWinRate}}</text>
+              <text class="stats-matches">({{currentPlayerStats.mixedDoublesWins || 0}}胜{{currentPlayerStats.mixedDoublesLosses || 0}}负)</text>
+            </view>
+          </view>
+        </view>
+      </block>
+      
+      <block wx:elif="{{currentPlayerStats.gender === 'female'}}">
+        <view class="stats-section-row">
+          <view class="stats-section-half">
+            <view class="stats-title">女双</view>
+            <view class="stats-value-container">
+              <text class="stats-number">{{currentPlayerStats.femaleDoublesWinRate}}</text>
+              <text class="stats-matches">({{currentPlayerStats.femaleDoublesWins || 0}}胜{{currentPlayerStats.femaleDoublesLosses || 0}}负)</text>
+            </view>
+          </view>
+          
+          <view class="stats-section-half">
+            <view class="stats-title">混双</view>
+            <view class="stats-value-container">
+              <text class="stats-number">{{currentPlayerStats.mixedDoublesWinRate}}</text>
+              <text class="stats-matches">({{currentPlayerStats.mixedDoublesWins || 0}}胜{{currentPlayerStats.mixedDoublesLosses || 0}}负)</text>
+            </view>
+          </view>
+        </view>
+      </block>
+    </view>
+    
+    <view class="modal-footer">
+      <view class="modal-btn modal-btn-primary" bindtap="hidePlayerStatsModal">关闭</view>
+    </view>
+  </view>
+</view> 

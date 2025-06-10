@@ -1,0 +1,861 @@
+/* 页面容器样式调整 */
+.container {
+  height: 100vh; /* 使用视口高度 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; /* 改为从上往下布局 */
+  box-sizing: border-box;
+  padding: 20rpx 30rpx 40rpx; /* 增加顶部内边距 */
+  position: fixed; /* 固定位置，防止滚动 */
+  width: 100%;
+  overflow: hidden; /* 隐藏溢出内容，防止滚动 */
+}
+
+/* 标题容器 */
+.header-container {
+  width: 100%;
+  padding: 60rpx 0 30rpx; /* 增加顶部留白 */
+  margin-bottom: 30rpx; /* 减小底部外边距，使更多内容可见 */
+}
+
+/* 页面标题 */
+.page-title {
+  font-size: 60rpx; /* 减小字体大小 */
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  padding: 20rpx 0; /* 减小上下内边距 */
+  margin-top: 4vh; /* 减小上外边距 */
+  margin-bottom: 30rpx; /* 减小下外边距 */
+  text-align: center;
+  position: relative;
+  
+  /* 基本文字颜色 */
+  color: white;
+  
+  /* 多层文字阴影模拟边框效果 */
+  text-shadow: 
+    -2rpx -2rpx 0 #888,
+    2rpx -2rpx 0 #888,
+    -2rpx 2rpx 0 #888,
+    2rpx 2rpx 0 #888,
+    -3rpx 0 0 #999,
+    3rpx 0 0 #999,
+    0 -3rpx 0 #999,
+    0 3rpx 0 #999,
+    0 4rpx 10rpx rgba(0, 0, 0, 0.5); /* 额外添加的阴影效果 */
+}
+
+/* 底部装饰线 */
+.page-title:after {
+  content: '';
+  position: absolute;
+  bottom: 15rpx;
+  left: 50%;
+  width: 150rpx;
+  height: 4rpx;
+  background: linear-gradient(90deg, transparent, white, transparent);
+  transform: translateX(-50%);
+}
+
+/* 增加轻微动画效果 */
+@keyframes titleShine {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.page-title {
+  /* 使渐变动起来 */
+  background-size: 200% auto;
+  animation: titleShine 6s ease infinite;
+}
+
+/* 主内容区域 - 添加，使内容居中 */
+.main-content {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start; /* 改为靠上对齐 */
+  padding-top: 2vh; /* 减小顶部内边距 */
+}
+
+/* 比分容器 */
+.score-container {
+  width: 85%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 40rpx;
+  margin-top: 10vh; /* 添加页面高度10%的顶部外边距，使整个区域下移 */
+}
+
+/* 队伍容器 */
+.team-container {
+  width: 42%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* VS文字 */
+.vs-text {
+  font-size: 72rpx;
+  font-weight: bold;
+  color: #8BC34A;
+  margin: 0 10rpx;
+  position: relative;
+  top: -6vh; /* 从-4vh改为-6vh */
+}
+
+/* 分数框 - 使用margin方法向上移动 */
+.score-box {
+  width: 210rpx;
+  height: 210rpx;
+  border-radius: 10rpx;
+  background-color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 60rpx;
+  border: 1rpx solid #ddd;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
+  position: relative;
+  top: -6vh; /* 从-10vh改为-6vh，向下移动 */
+  margin-top: -6vh; /* 从-10vh改为-6vh，向下移动 */
+  margin-bottom: calc(60rpx + 6vh); /* 从10vh改为6vh，保持一致 */
+}
+
+.score-text {
+  font-size: 90rpx; /* 放大分数文字 */
+  font-weight: bold;
+  color: #333;
+}
+
+/* 选手容器 */
+.player-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 选手框 */
+.player-box {
+  width: 100%;
+  min-height: 120rpx;
+  background-color: #fff;
+  border-radius: 10rpx;
+  display: flex;
+  align-items: center;
+  padding: 20rpx 16rpx; /* 减小左右内边距，为文字留出更多空间 */
+  margin-bottom: 30rpx;
+  box-sizing: border-box;
+  border: 1rpx solid #ddd;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
+  position: relative;
+  top: -1vh; /* 向上移动视口高度的1% */
+}
+
+.player-add {
+  border: 2rpx dashed #8BC34A;
+  background-color: rgba(139, 195, 74, 0.05);
+}
+
+/* 选手头像 */
+.player-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  margin-right: 20rpx;
+}
+
+/* 选手名字 - 进一步优化 */
+.player-name {
+  font-size: 22rpx; /* 更小的字体 */
+  color: #333;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 6rpx;
+  letter-spacing: -0.5rpx; /* 稍微减少字符间距 */
+}
+
+/* 按钮容器 */
+.button-container {
+  width: 100%;
+  display: flex;
+  justify-content: space-around; /* 改为space-around增加间距 */
+  align-items: center;
+  margin-top: 40rpx; /* 增加上边距 */
+}
+
+/* 底部按钮容器 - 移动一半距离 */
+.footer-buttons {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30rpx 20rpx;
+  margin-top: auto;
+  margin-bottom: 70rpx; /* 从100rpx减少到70rpx */
+  position: relative;
+  top: -20rpx; /* 从-40rpx减半到-20rpx */
+}
+
+/* 清空按钮 - 左侧定位 */
+.btn-clear {
+  position: absolute;
+  left: 20%; /* 距离左侧20% */
+  width: 200rpx;
+  height: 90rpx;
+  border-radius: 12rpx;
+  background-color: #f5f5f5;
+  color: #666;
+  border: 1rpx solid #ddd;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 提交按钮 - 右侧定位 */
+.btn-primary {
+  position: absolute;
+  right: 20%; /* 距离右侧20% */
+  width: 200rpx;
+  height: 90rpx;
+  border-radius: 12rpx;
+  background-color: #8BC34A;
+  color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 模态框样式 */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 999;
+}
+
+.modal-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #fff;
+  border-top-left-radius: 20rpx;
+  border-top-right-radius: 20rpx;
+  overflow: hidden;
+  padding-bottom: 40rpx;
+  max-height: 80%;
+  display: flex;
+  flex-direction: column;
+}
+
+.player-select-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+}
+
+.modal-header {
+  flex-shrink: 0;
+  font-size: 32rpx;
+  font-weight: bold;
+  padding: 30rpx;
+  text-align: center;
+  border-bottom: 1rpx solid #eee;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 30rpx;
+}
+
+/* 分数输入样式 */
+.score-input {
+  width: 100%;
+  height: 100rpx;
+  margin-bottom: 30rpx;
+}
+
+.score-input input {
+  width: 100%;
+  height: 100rpx;
+  text-align: center;
+  font-size: 60rpx;
+  font-weight: bold;
+  border-bottom: 1rpx solid #eee;
+}
+
+/* 快捷分数选择 */
+.quick-score {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 30rpx;
+}
+
+.quick-score-item {
+  width: 30%;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  background-color: #f5f5f5;
+  border-radius: 10rpx;
+  font-size: 28rpx;
+}
+
+/* 数字键盘 */
+.score-keyboard {
+  width: 100%;
+}
+
+.keyboard-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.keyboard-key {
+  width: 30%;
+  height: 100rpx;
+  line-height: 100rpx;
+  text-align: center;
+  background-color: #f5f5f5;
+  border-radius: 10rpx;
+  font-size: 36rpx;
+}
+
+.keyboard-clear {
+  background-color: #ffebee;
+  color: #f44336;
+}
+
+.keyboard-confirm {
+  background-color: #8BC34A;
+  color: #fff;
+}
+
+/* 选手列表 */
+.player-list {
+  max-height: 800rpx;
+  overflow-y: auto;
+}
+
+.player-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #eee;
+}
+
+.player-item-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  margin-right: 20rpx;
+}
+
+.player-item-name {
+  font-size: 28rpx;
+  flex: 1;
+  text-align: left;
+}
+
+.player-item-gender {
+  font-size: 26rpx;
+  color: #888;
+  margin-left: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 20rpx;
+  background-color: #f5f5f5;
+}
+
+.add-new-player {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 0;
+  margin-top: 20rpx;
+  border-top: 1rpx dashed #8BC34A;
+}
+
+/* 输入组 */
+.input-group {
+  margin-bottom: 30rpx;
+}
+
+.input-label {
+  display: block;
+  font-size: 28rpx;
+  margin-bottom: 10rpx;
+  color: #666;
+}
+
+.player-selected {
+  background-color: rgba(139, 195, 74, 0.1);
+  border-left: 4rpx solid #8BC34A;
+}
+
+/* 已选择选手预览区 */
+.selected-preview {
+  padding: 20rpx 30rpx;
+  border-bottom: 1px solid #eee;
+}
+
+.preview-title {
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 10rpx;
+  display: block;
+}
+
+.preview-players {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.preview-player {
+  background-color: rgba(139, 195, 74, 0.1);
+  padding: 8rpx 16rpx;
+  border-radius: 30rpx;
+  margin-right: 10rpx;
+  margin-bottom: 10rpx;
+  font-size: 24rpx;
+  display: flex;
+  align-items: center;
+}
+
+.remove-player {
+  margin-left: 10rpx;
+  color: #999;
+  font-size: 28rpx;
+}
+
+.add-icon {
+  font-size: 36rpx;
+  margin-right: 10rpx;
+  color: #8BC34A;
+}
+
+/* 弹窗专用按钮容器 - 确保所有弹窗中的按钮布局一致 */
+.modal-buttons {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30rpx;
+  padding: 0 20rpx;
+  box-sizing: border-box;
+}
+
+/* 弹窗专用按钮 */
+.modal-btn {
+  width: 45%;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  border-radius: 12rpx;
+  font-size: 32rpx;
+}
+
+.modal-btn-clear {
+  background-color: #f5f5f5;
+  color: #666;
+  border: 1rpx solid #ddd;
+}
+
+.modal-btn-primary {
+  background-color: #8BC34A;
+  color: #fff;
+}
+
+/* 紧凑型选手列表样式 */
+.player-list-compact {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+/* 紧凑型选手项样式 */
+.player-item-compact {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* 小尺寸选手头像 */
+.player-avatar-small {
+  width: 50rpx;  /* 减小头像尺寸 */
+  height: 50rpx;
+  border-radius: 25rpx;
+  margin-right: 10rpx;
+}
+
+/* 小尺寸选手名字 */
+.player-name-small {
+  font-size: 24rpx;
+  color: #333;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 当有多个选手时的特殊布局 */
+.player-list-compact.multiple {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* 双列布局 */
+  gap: 5rpx;
+}
+
+/* 在双打模式下减小文字大小 */
+.multiple .player-name-small {
+  font-size: 20rpx;
+}
+
+.multiple .player-avatar-small {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 20rpx;
+}
+
+/* 全新的按钮容器 */
+.new-button-container, .custom-btn-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 30rpx 0;
+  margin-top: auto;
+  margin-bottom: 70rpx; /* 从100rpx减少到70rpx */
+  position: relative;
+  top: -20rpx; /* 从-40rpx减半到-20rpx */
+}
+
+/* 按钮基础样式 - 使用手机应用标准圆角 */
+.new-btn {
+  width: 260rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  border-radius: 16rpx; /* 使用移动应用标准圆角 */
+  font-size: 32rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
+  border: 1rpx solid #e0e0e0;
+}
+
+/* 按钮间距保持缩小后的值 */
+.new-btn-clear {
+  background-color: #ffffff;
+  color: #666;
+  margin-right: 45rpx;
+}
+
+.new-btn-primary {
+  background-color: #a8d87a;
+  color: #fff;
+  margin-left: 45rpx;
+}
+
+/* 自定义按钮容器 */
+.custom-btn-container {
+  display: flex;
+  justify-content: center;
+}
+
+/* 自定义按钮基础样式 */
+.custom-btn {
+  width: 260rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  border-radius: 16rpx; /* 移动应用标准圆角 */
+  font-size: 32rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
+}
+
+/* 按钮按下状态 */
+.custom-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.1);
+}
+
+/* 清空按钮 */
+.clear-btn {
+  background-color: #ffffff;
+  color: #666;
+  margin-right: 45rpx;
+  border: 1rpx solid #e0e0e0;
+  box-shadow: inset 0 1rpx 3rpx rgba(0, 0, 0, 0.05), 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+
+/* 提交按钮 */
+.submit-btn {
+  background-color: #a8d87a; 
+  color: #fff;
+  margin-left: 45rpx; /* 从56rpx减少20% */
+  border: 1rpx solid #e0e0e0;
+}
+
+/* 比赛模式按钮 - 调整位置使其完全显示在页面中 */
+.match-mode-btn {
+  width: 260rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  margin-top: 20rpx;
+  margin-bottom: 20rpx; /* 减小底部外边距 */
+  background: linear-gradient(to bottom, #ff5252, #d32f2f);
+  color: #fff;
+  box-shadow: 0 4rpx 12rpx rgba(211, 47, 47, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  transform: translateY(-60rpx); /* 调整向上移动的距离 */
+}
+
+/* 按钮按下状态 */
+.match-mode-btn:active {
+  transform: scale(0.98) translateY(-60rpx); /* 保持向上移动的同时添加缩放效果 */
+  background: linear-gradient(to bottom, #d32f2f, #b71c1c);
+}
+
+/* 火焰图标 */
+.flame-icon {
+  width: 32rpx;
+  height: 32rpx;
+  margin-right: 10rpx;
+  position: relative;
+}
+
+.flame-icon:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at center, #ffeb3b 0%, #ff9800 40%, #ff5722 100%);
+  border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+  animation: flame 1s infinite alternate;
+}
+
+@keyframes flame {
+  0% {
+    transform: scale(0.8) rotate(-5deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.1) rotate(5deg);
+    opacity: 1;
+  }
+}
+
+/* 清空选手按钮样式 */
+.clear-players-btn {
+  position: absolute;
+  right: 30rpx;
+  font-size: 24rpx;
+  color: #999;
+  padding: 6rpx 12rpx;
+}
+
+/* 提高选择器特异性，防止被覆盖 */
+.modal .modal-buttons .modal-btn {
+  width: 45% !important;
+  margin: 0 !important;
+  float: none !important;
+  /* 其他样式保持不变 */
+}
+
+/* 覆盖任何可能的button样式 */
+.modal button.modal-btn {
+  padding: 0;
+  background-color: transparent;
+  line-height: 80rpx;
+}
+
+/* 清除任何可能的浮动 */
+.modal-buttons:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.modal-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 20rpx 30rpx;
+  border-top: 1rpx solid #eee;
+  background-color: #fff;
+}
+
+/* 比赛模式选择弹窗样式 */
+.match-mode-options {
+  display: flex;
+  justify-content: space-around;
+  padding: 30rpx 0;
+}
+
+.match-mode-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 40%;
+  padding: 30rpx;
+  border-radius: 16rpx;
+  background-color: #f5f5f5;
+  box-shadow: 0 4rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+
+.match-mode-option:active {
+  transform: scale(0.98);
+  background-color: #e0e0e0;
+}
+
+.match-mode-icon {
+  width: 120rpx;
+  height: 120rpx;
+  margin-bottom: 20rpx;
+  border-radius: 50%;
+  background-color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.singles-icon:before {
+  content: "";
+  position: absolute;
+  width: 60rpx;
+  height: 60rpx;
+  background-color: #ff5252;
+  border-radius: 50%;
+}
+
+.doubles-icon:before {
+  content: "";
+  position: absolute;
+  width: 40rpx;
+  height: 40rpx;
+  background-color: #ff5252;
+  border-radius: 50%;
+  left: 30rpx;
+}
+
+.doubles-icon:after {
+  content: "";
+  position: absolute;
+  width: 40rpx;
+  height: 40rpx;
+  background-color: #ff5252;
+  border-radius: 50%;
+  right: 30rpx;
+}
+
+.match-mode-text {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+/* 比赛类型选择弹窗样式 */
+.match-type-options {
+  display: flex;
+  flex-direction: column;
+  gap: 30rpx;
+  padding: 20rpx 0;
+}
+
+.match-type-option {
+  display: flex;
+  align-items: center;
+  padding: 30rpx;
+  border-radius: 16rpx;
+  background-color: #f5f5f5;
+  box-shadow: 0 4rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+
+.match-type-option:active {
+  transform: scale(0.98);
+  background-color: #e0e0e0;
+}
+
+.match-type-icon {
+  width: 80rpx;
+  height: 80rpx;
+  margin-right: 20rpx;
+  border-radius: 50%;
+  background-color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.round-robin-icon:before {
+  content: "";
+  position: absolute;
+  width: 50rpx;
+  height: 50rpx;
+  border: 4rpx solid #ff5252;
+  border-radius: 50%;
+}
+
+.group-icon:before {
+  content: "";
+  position: absolute;
+  width: 20rpx;
+  height: 20rpx;
+  background-color: #ff5252;
+  border-radius: 50%;
+  left: 15rpx;
+  top: 15rpx;
+}
+
+.group-icon:after {
+  content: "";
+  position: absolute;
+  width: 20rpx;
+  height: 20rpx;
+  background-color: #ff5252;
+  border-radius: 50%;
+  right: 15rpx;
+  bottom: 15rpx;
+}
+
+.match-type-text {
+  font-size: 32rpx;
+  color: #333;
+}

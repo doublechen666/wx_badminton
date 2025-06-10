@@ -1,0 +1,2585 @@
+// 获取应用实例
+const app = getApp();
+
+Page({
+  /**
+   * 页面的初始数�?   */
+  data: {
+    mode: 'singles', // 默认为单打模�?    tournamentType: 'round_robin', // 比赛类型：round_robin(完全循环)或swiss(瑞士�?
+    players: [], // 所有可选择的选手
+    selectedPlayers: [], // 已选择的选手
+    matchTable: [], // 比赛表格数据
+    showPlayerSelectModal: false, // 是否显示选手选择弹窗
+    isMatchStarted: false, // 比赛是否已开�?    isMatchEnded: false, // 比赛是否已结�?    currentRound: 1, // 当前轮次（瑞士轮使用�?    totalRounds: 0, // 总轮次（瑞士轮使用）
+    playerRankings: [], // 选手排名（瑞士轮使用�?    showAddTempPlayerModal: false, // 是否显示添加临时选手弹窗
+    tempPlayerName: '', // 临时选手姓名
+    tempPlayerGender: 'male', // 临时选手性别，默认为�?    isDoubles: false, // 是否为双打模�?    showScoreInputModal: false,
+    currentMatch: null,
+    teamScore: '',
+    opponentScore: '',
+    activeScoreInput: 'team', // 当前激活的分数输入框，可选值：'team'�?opponent'
+    showRankingModal: false, // 是否显示排名结果弹窗
+  },
+
+  /**
+   * 生命周期函数--监听页面加载
+   */
+  onLoad: function (options) {
+    const mode = options.mode || 'singles';
+    const tournamentType = options.tournament_type || 'round_robin';
+    
+    this.setData({
+      mode: mode,
+      tournamentType: tournamentType,
+      isDoubles: mode === 'doubles'
+    });
+    
+    // 加载选手数据
+    this.loadPlayers();
+    
+    // 检查是否有进行中的比赛
+    this.checkOngoingMatch();
+  },
+  
+  /**
+   * 加载选手数据
+   */
+  loadPlayers: function() {
+    const allPlayers = app.globalData.players || [];
+    
+    this.setData({
+      players: allPlayers
+    });
+  },
+  
+  /**
+   * 检查是否有进行中的比赛
+   */
+  checkOngoingMatch: function() {
+    const storageKey = this.data.tournamentType === 'swiss' ? 'ongoingSwissMatch' : 'ongoingRoundRobinMatch';
+    const ongoingMatch = wx.getStorageSync(storageKey);
+    
+    if (ongoingMatch && ongoingMatch.mode === this.data.mode) {
+      this.setData({
+        selectedPlayers: ongoingMatch.players,
+        matchTable: ongoingMatch.matchTable,
+        isMatchStarted: true,
+        currentRound: ongoingMatch.currentRound || 1,
+        totalRounds: ongoingMatch.totalRounds || 0,
+        playerRankings: ongoingMatch.playerRankings || []
+      });
+    }
+  },
+  
+  /**
+   * 显示选手选择弹窗
+   */
+  showPlayerSelect: function() {
+    this.setData({
+      showPlayerSelectModal: true
+    });
+  },
+  
+  /**
+   * 隐藏选手选择弹窗
+   */
+  hidePlayerSelect: function() {
+    this.setData({
+      showPlayerSelectModal: false
+    });
+  },
+  
+  /**
+   * 切换选手选择状�?   */
+  togglePlayerSelection: function(e) {
+    const playerId = e.currentTarget.dataset.id;
+    const { selectedPlayers, isDoubles, players } = this.data;
+    
+    // 查找选手对象
+    const player = players.find(p => p.id === playerId);
+    if (!player) return;
+    
+    // 查找选手是否已被选中
+    const index = selectedPlayers.findIndex(p => p.id === playerId);
+    
+    // 如果是双打模�?    if (isDoubles) {
+      // 如果已经选择�?名选手，且当前选手未被选中，则不允许再�?      if (selectedPlayers.length >= 4 && index === -1) {
+        wx.showToast({
+          title: '双打模式最多选择4名选手',
+          icon: 'none'
+        });
+        return;
+      }
+      
+      // 切换选择状�?      let newSelectedPlayers = [...selectedPlayers];
+      if (index !== -1) {
+        // 取消选择
+        newSelectedPlayers.splice(index, 1);
+      } else {
+        // 添加选择
+        newSelectedPlayers.push(player);
+      }
+      
+      this.setData({
+        selectedPlayers: newSelectedPlayers
+      });
+    } else {
+      // 单打模式 - 移除选手数量限制
+      // 切换选择状�?      let newSelectedPlayers = [...selectedPlayers];
+      if (index !== -1) {
+        // 取消选择
+        newSelectedPlayers.splice(index, 1);
+      } else {
+        // 添加选择
+        newSelectedPlayers.push(player);
+      }
+      
+      this.setData({
+        selectedPlayers: newSelectedPlayers
+      });
+    }
+  },
+  
+  /**
+   * 检查选手是否被选中
+   */
+  isPlayerSelected: function(playerId) {
+    return this.data.selectedPlayers.some(function(player) {
+      return player.id === playerId;
+    });
+  },
+  
+  /**
+   * 确认选手选择
+   */
+  confirmPlayerSelection: function() {
+    const { selectedPlayers, mode, tournamentType } = this.data;
+    
+    // 检查选手数量
+    if (selectedPlayers.length < 2) {
+      wx.showToast({
+        title: '至少需�?名选手',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    // 如果是双打模式，检查选手数量是否为偶�?    if (mode === 'doubles' && selectedPlayers.length % 2 !== 0) {
+      wx.showToast({
+        title: '双打模式需要偶数名选手',
+        icon: 'none'
+      });
+      return;
+    }
+
+    // 如果是双打模式，组织选手为组�?    if (mode === 'doubles') {
+      // 检查是否有足够的男女选手组成混双
+      const maleCount = selectedPlayers.filter(p => p.gender === 'male').length;
+      const femaleCount = selectedPlayers.filter(p => p.gender === 'female').length;
+      
+      // 提示性别组合情况
+      let pairsInfo = '';
+      if (maleCount >= 2 && femaleCount >= 2) {
+        pairsInfo = '将组成男双、女双和混双组合';
+      } else if (maleCount >= 2) {
+        pairsInfo = '将组成男双组�?;
+      } else if (femaleCount >= 2) {
+        pairsInfo = '将组成女双组�?;
+      } else if (maleCount > 0 && femaleCount > 0) {
+        pairsInfo = '将组成混双组�?;
+      }
+      
+      wx.showToast({
+        title: pairsInfo,
+        icon: 'none',
+        duration: 2000
+      });
+    }
+    
+    // 计算瑞士轮总轮次（如果是瑞士轮�?    if (tournamentType === 'swiss') {
+      // 瑞士轮通常为log2(n)向上取整，最多不超过选手数量-1
+      const playerCount = mode === 'singles' ? selectedPlayers.length : selectedPlayers.length / 2;
+      const totalRounds = Math.min(Math.ceil(Math.log2(playerCount)), playerCount - 1);
+      
+      this.setData({
+        totalRounds: totalRounds
+      });
+      
+      // 初始化选手排名（按照初始分数排序）
+      const playerRankings = selectedPlayers.map(player => ({
+        ...player,
+        wins: 0,
+        losses: 0,
+        points: 0,
+        opponents: []
+      })).sort((a, b) => b.score - a.score);
+      
+      this.setData({
+        playerRankings: playerRankings
+      });
+    }
+    
+    // 生成比赛表格数据
+    this.generateMatchTable();
+    
+    this.setData({
+      showPlayerSelectModal: false,
+      isMatchStarted: true
+    });
+    
+    // 保存进行中的比赛
+    this.saveOngoingMatch();
+  },
+  
+  /**
+   * 生成比赛表格数据
+   */
+  generateMatchTable: function() {
+    const { selectedPlayers, mode, tournamentType, currentRound, playerRankings } = this.data;
+    const matchTable = [];
+    
+    if (tournamentType === 'round_robin') {
+      // 完全循环�?    if (mode === 'singles') {
+      // 单打模式
+      for (let i = 0; i < selectedPlayers.length; i++) {
+        const row = {
+          player: selectedPlayers[i],
+          matches: []
+        };
+        
+        for (let j = 0; j < selectedPlayers.length; j++) {
+          if (i === j) {
+            // 自己对自己，显示斜杠
+            row.matches.push({
+              opponent: selectedPlayers[j],
+              score: '/',
+              isSelfMatch: true
+            });
+          } else {
+            // 查找是否已有比赛记录
+            const existingTable = this.data.matchTable || [];
+            const existingRow = existingTable.find(r => r.player.id === selectedPlayers[i].id);
+            const existingMatch = existingRow ? existingRow.matches.find(m => m.opponent.id === selectedPlayers[j].id) : null;
+            
+            row.matches.push({
+              opponent: selectedPlayers[j],
+              score: existingMatch ? existingMatch.score : '',
+              id: `match_${selectedPlayers[i].id}_${selectedPlayers[j].id}`
+            });
+          }
+        }
+        
+        matchTable.push(row);
+      }
+    } else {
+      // 双打模式
+      // 生成所有可能的双打组合
+      const teams = [];
+        
+        // 先将选手按性别分组
+        const malePlayers = selectedPlayers.filter(p => p.gender === 'male');
+        const femalePlayers = selectedPlayers.filter(p => p.gender === 'female');
+        
+        // 尽可能组成男�?        for (let i = 0; i < malePlayers.length - 1; i += 2) {
+          if (i + 1 < malePlayers.length) {
+            teams.push({
+              id: `${malePlayers[i].id}_${malePlayers[i + 1].id}`,
+              players: [malePlayers[i], malePlayers[i + 1]],
+              name: `${malePlayers[i].name}/${malePlayers[i + 1].name}`,
+              type: 'male' // 标记为男�?            });
+          }
+        }
+        
+        // 尽可能组成女�?        for (let i = 0; i < femalePlayers.length - 1; i += 2) {
+          if (i + 1 < femalePlayers.length) {
+            teams.push({
+              id: `${femalePlayers[i].id}_${femalePlayers[i + 1].id}`,
+              players: [femalePlayers[i], femalePlayers[i + 1]],
+              name: `${femalePlayers[i].name}/${femalePlayers[i + 1].name}`,
+              type: 'female' // 标记为女�?            });
+          }
+        }
+        
+        // 剩余的男选手和女选手组成混双
+        const remainingMales = malePlayers.length % 2 === 1 ? [malePlayers[malePlayers.length - 1]] : [];
+        const remainingFemales = femalePlayers.length % 2 === 1 ? [femalePlayers[femalePlayers.length - 1]] : [];
+        
+        const minCount = Math.min(remainingMales.length, remainingFemales.length);
+        for (let i = 0; i < minCount; i++) {
+        teams.push({
+            id: `${remainingMales[i].id}_${remainingFemales[i].id}`,
+            players: [remainingMales[i], remainingFemales[i]],
+            name: `${remainingMales[i].name}/${remainingFemales[i].name}`,
+            type: 'mixed' // 标记为混�?          });
+        }
+        
+        // 如果还有剩余选手，两两组�?        const allRemaining = [...remainingMales.slice(minCount), ...remainingFemales.slice(minCount)];
+        for (let i = 0; i < allRemaining.length - 1; i += 2) {
+          if (i + 1 < allRemaining.length) {
+            const type = allRemaining[i].gender === allRemaining[i + 1].gender ? 
+                        (allRemaining[i].gender === 'male' ? 'male' : 'female') : 'mixed';
+            teams.push({
+              id: `${allRemaining[i].id}_${allRemaining[i + 1].id}`,
+              players: [allRemaining[i], allRemaining[i + 1]],
+              name: `${allRemaining[i].name}/${allRemaining[i + 1].name}`,
+              type: type
+            });
+          }
+        }
+      
+      for (let i = 0; i < teams.length; i++) {
+        const row = {
+          team: teams[i],
+          matches: []
+        };
+        
+        for (let j = 0; j < teams.length; j++) {
+          if (i === j) {
+            // 自己对自己，显示斜杠
+            row.matches.push({
+              opponent: teams[j],
+              score: '/',
+              isSelfMatch: true
+            });
+          } else {
+            // 查找是否已有比赛记录
+            const existingTable = this.data.matchTable || [];
+            const existingRow = existingTable.find(r => r.team && r.team.id === teams[i].id);
+            const existingMatch = existingRow ? existingRow.matches.find(m => m.opponent.id === teams[j].id) : null;
+            
+            row.matches.push({
+              opponent: teams[j],
+              score: existingMatch ? existingMatch.score : '',
+              id: `match_${teams[i].id}_${teams[j].id}`
+            });
+          }
+        }
+        
+        matchTable.push(row);
+        }
+      }
+    } else {
+      // 瑞士轮比�?      if (mode === 'singles') {
+        // 单打模式
+        if (currentRound === 1) {
+          // 第一轮按照初始排名配对：1 vs n/2+1, 2 vs n/2+2, ...
+          const n = selectedPlayers.length;
+          const halfN = Math.ceil(n / 2);
+          
+          // 确保所有选手都能参与比赛
+          for (let i = 0; i < halfN; i++) {
+            if (i + halfN < n) {
+              // 正常配对
+              const match = {
+                round: 1,
+                player1: selectedPlayers[i],
+                player2: selectedPlayers[i + halfN],
+                score: '',
+                winner: null
+              };
+              
+              matchTable.push(match);
+            } else if (i < n) {
+              // 如果选手数量为奇数，最后一名选手轮空或安排特殊比�?              console.log("选手数量为奇数，最后一名选手轮空");
+              // 可以在这里添加轮空逻辑
+            }
+          }
+        } else {
+          // 后续轮次按照当前排名配对
+          // 这里简单实现，实际瑞士轮有更复杂的配对规则
+          const availablePlayers = [...playerRankings];
+          
+          while (availablePlayers.length >= 2) {
+            const player1 = availablePlayers.shift();
+            
+            // 找到未曾对阵过的对手
+            let opponentIndex = -1;
+            for (let i = 0; i < availablePlayers.length; i++) {
+              if (!player1.opponents.includes(availablePlayers[i].id)) {
+                opponentIndex = i;
+                break;
+              }
+            }
+            
+            // 如果找不到未曾对阵过的对手，就选择第一个可用的对手
+            if (opponentIndex === -1 && availablePlayers.length > 0) {
+              opponentIndex = 0;
+            }
+            
+            if (opponentIndex !== -1) {
+              const player2 = availablePlayers.splice(opponentIndex, 1)[0];
+              
+              const match = {
+                round: currentRound,
+                player1: player1,
+                player2: player2,
+                score: '',
+                winner: null
+              };
+              
+              matchTable.push(match);
+            }
+          }
+        }
+      } else {
+        // 双打模式
+        if (currentRound === 1) {
+          // 生成所有可能的双打组合
+          const teams = [];
+          for (let i = 0; i < selectedPlayers.length; i += 2) {
+            if (i + 1 < selectedPlayers.length) {
+              teams.push({
+                id: `${selectedPlayers[i].id}_${selectedPlayers[i + 1].id}`,
+                players: [selectedPlayers[i], selectedPlayers[i + 1]],
+                name: `${selectedPlayers[i].name}/${selectedPlayers[i + 1].name}`,
+                wins: 0,
+                losses: 0,
+                points: 0,
+                opponents: []
+              });
+            }
+          }
+
+          // 保存队伍信息到playerRankings
+          this.setData({
+            playerRankings: teams
+          });
+          
+          // 第一轮按照队伍数量配�?          const n = teams.length;
+          const halfN = Math.ceil(n / 2);
+          
+          // 确保所有队伍都能参与比�?          for (let i = 0; i < halfN; i++) {
+            if (i + halfN < n) {
+              // 正常配对
+              const match = {
+                round: 1,
+                team1: teams[i],
+                team2: teams[i + halfN],
+                score: '',
+                winner: null
+              };
+              
+              matchTable.push(match);
+            } else if (i < n) {
+              // 如果队伍数量为奇数，最后一支队伍轮空或安排特殊比赛
+              console.log("队伍数量为奇数，最后一支队伍轮�?);
+              // 可以在这里添加轮空逻辑
+            }
+          }
+        } else {
+          // 后续轮次按照当前排名配对
+          // 这里简单实现，实际瑞士轮有更复杂的配对规则
+          const availableTeams = [...this.data.playerRankings];
+          
+          while (availableTeams.length >= 2) {
+            const team1 = availableTeams.shift();
+            
+            // 找到未曾对阵过的对手
+            let opponentIndex = -1;
+            for (let i = 0; i < availableTeams.length; i++) {
+              if (!team1.opponents.includes(availableTeams[i].id)) {
+                opponentIndex = i;
+                break;
+              }
+            }
+            
+            // 如果找不到未曾对阵过的对手，就选择第一个可用的对手
+            if (opponentIndex === -1 && availableTeams.length > 0) {
+              opponentIndex = 0;
+            }
+            
+            if (opponentIndex !== -1) {
+              const team2 = availableTeams.splice(opponentIndex, 1)[0];
+              
+              const match = {
+                round: currentRound,
+                team1: team1,
+                team2: team2,
+                score: '',
+                winner: null
+              };
+              
+              matchTable.push(match);
+            }
+          }
+        }
+      }
+    }
+    
+    this.setData({
+      matchTable: matchTable
+    });
+  },
+  
+  /**
+   * 保存进行中的比赛
+   */
+  saveOngoingMatch: function() {
+    const { selectedPlayers, matchTable, mode, tournamentType, currentRound, totalRounds, playerRankings } = this.data;
+    
+    const storageKey = tournamentType === 'swiss' ? 'ongoingSwissMatch' : 'ongoingRoundRobinMatch';
+    
+    // 如果是瑞士轮，保留之前的所有比赛记�?    if (tournamentType === 'swiss') {
+      const ongoingMatch = wx.getStorageSync(storageKey) || {};
+      const allMatches = ongoingMatch.allMatches || [];
+      
+      wx.setStorageSync(storageKey, {
+        mode: mode,
+        tournamentType: tournamentType,
+        players: selectedPlayers,
+        matchTable: matchTable,
+        currentRound: currentRound,
+        totalRounds: totalRounds,
+        playerRankings: playerRankings,
+        allMatches: allMatches, // 保存所有轮次的比赛
+        updateTime: new Date().toISOString()
+      });
+    } else {
+      wx.setStorageSync(storageKey, {
+        mode: mode,
+        tournamentType: tournamentType,
+        players: selectedPlayers,
+        matchTable: matchTable,
+        currentRound: currentRound,
+        totalRounds: totalRounds,
+        playerRankings: playerRankings,
+        updateTime: new Date().toISOString()
+      });
+    }
+  },
+  
+  /**
+   * 输入比分
+   */
+  inputScore: function(e) {
+    const { row, col } = e.currentTarget.dataset;
+    // 获取分数，优先从dataset.score获取，如果没有则从detail.value获取
+    const score = e.currentTarget.dataset.score || e.detail.value;
+    
+    // 更新比分
+    const matchTable = [...this.data.matchTable];
+    matchTable[row].matches[col].score = score;
+    
+    // 同时更新对应的反向比�?    const player1 = matchTable[row].player || matchTable[row].team;
+    const player2 = matchTable[row].matches[col].opponent;
+    
+    const reverseRow = matchTable.findIndex(r => 
+      (r.player && r.player.id === player2.id) || 
+      (r.team && r.team.id === player2.id)
+    );
+    
+    const reverseCol = matchTable[reverseRow].matches.findIndex(m => 
+      (m.opponent.id === player1.id)
+    );
+    
+    matchTable[reverseRow].matches[reverseCol].score = score;
+    
+    this.setData({
+      matchTable: matchTable
+    });
+    
+    // 保存进行中的比赛
+    this.saveOngoingMatch();
+  },
+  
+  /**
+   * 输入瑞士轮比赛比�?   */
+  inputSwissScore: function(e) {
+    const matchIndex = e.currentTarget.dataset.matchIndex;
+    const score = e.detail.value;
+    
+    // 更新比分
+    const matchTable = [...this.data.matchTable];
+    matchTable[matchIndex].score = score;
+    
+    // 解析比分
+    const scores = score.split(':');
+    if (scores.length === 2) {
+      const leftScore = parseInt(scores[0]);
+      const rightScore = parseInt(scores[1]);
+      
+      if (!isNaN(leftScore) && !isNaN(rightScore)) {
+        if (leftScore > rightScore) {
+          matchTable[matchIndex].winner = 'player1';
+        } else if (rightScore > leftScore) {
+          matchTable[matchIndex].winner = 'player2';
+        } else {
+          matchTable[matchIndex].winner = 'tie';
+        }
+      }
+    }
+    
+    this.setData({
+      matchTable: matchTable
+    });
+    
+    // 保存进行中的比赛
+    this.saveOngoingMatch();
+  },
+  
+  /**
+   * 进入下一�?   */
+  nextRound: function() {
+    const { matchTable, currentRound, totalRounds, mode } = this.data;
+    
+    // 检查当前轮次是否所有比赛都已完�?    const allMatchesCompleted = matchTable.every(match => match.winner);
+    
+    if (!allMatchesCompleted) {
+      wx.showModal({
+        title: '未完成比�?,
+        content: '当前轮次还有未完成的比赛，确定要继续吗？',
+        success: (res) => {
+          if (res.confirm) {
+            this.processCurrentRound();
+          }
+        }
+      });
+    } else {
+      this.processCurrentRound();
+    }
+  },
+  
+  /**
+   * 处理当前轮次结果并进入下一�?   */
+  processCurrentRound: function() {
+    const { matchTable, currentRound, mode, playerRankings } = this.data;
+    
+    // 更新选手排名
+    const updatedRankings = [...playerRankings];
+    
+    // 处理本轮比赛结果
+    for (const match of matchTable) {
+      // 跳过没有结果的比�?      if (!match.winner) continue;
+      
+      if (mode === 'singles') {
+        // 单打模式
+        const player1Index = updatedRankings.findIndex(p => p.id === match.player1.id);
+        const player2Index = updatedRankings.findIndex(p => p.id === match.player2.id);
+        
+        if (player1Index !== -1 && player2Index !== -1) {
+          // 记录对手
+          updatedRankings[player1Index].opponents.push(match.player2.id);
+          updatedRankings[player2Index].opponents.push(match.player1.id);
+          
+          // 更新胜负场次和积�?          if (match.winner === 'player1') {
+            updatedRankings[player1Index].wins++;
+            updatedRankings[player1Index].points += 2;
+            updatedRankings[player2Index].losses++;
+          } else if (match.winner === 'player2') {
+            updatedRankings[player2Index].wins++;
+            updatedRankings[player2Index].points += 2;
+            updatedRankings[player1Index].losses++;
+          } else if (match.winner === 'tie') {
+            updatedRankings[player1Index].points += 1;
+            updatedRankings[player2Index].points += 1;
+          }
+        }
+      } else {
+        // 双打模式
+        const team1Index = updatedRankings.findIndex(t => t.id === match.team1.id);
+        const team2Index = updatedRankings.findIndex(t => t.id === match.team2.id);
+        
+        if (team1Index !== -1 && team2Index !== -1) {
+          // 记录对手
+          updatedRankings[team1Index].opponents.push(match.team2.id);
+          updatedRankings[team2Index].opponents.push(match.team1.id);
+          
+          // 更新胜负场次和积�?          if (match.winner === 'player1') {
+            updatedRankings[team1Index].wins++;
+            updatedRankings[team1Index].points += 2;
+            updatedRankings[team2Index].losses++;
+          } else if (match.winner === 'player2') {
+            updatedRankings[team2Index].wins++;
+            updatedRankings[team2Index].points += 2;
+            updatedRankings[team1Index].losses++;
+          } else if (match.winner === 'tie') {
+            updatedRankings[team1Index].points += 1;
+            updatedRankings[team2Index].points += 1;
+          }
+        }
+      }
+    }
+    
+    // 按积分排�?    updatedRankings.sort((a, b) => {
+      if (a.points !== b.points) return b.points - a.points;
+      if (a.wins !== b.wins) return b.wins - a.wins;
+      return 0;
+    });
+    
+    // 保存当前轮次的比赛记录到本地存储
+    const ongoingMatch = wx.getStorageSync('ongoingSwissMatch') || {};
+    const allMatches = ongoingMatch.allMatches || [];
+    
+    // 将当前轮次的比赛添加到历史记�?    const currentRoundMatches = matchTable.filter(match => match.winner);
+    allMatches.push(...currentRoundMatches);
+    
+    // 更新本地存储
+    ongoingMatch.allMatches = allMatches;
+    wx.setStorageSync('ongoingSwissMatch', ongoingMatch);
+    
+    // 进入下一�?    this.setData({
+      currentRound: currentRound + 1,
+      playerRankings: updatedRankings
+    });
+    
+    // 生成下一轮比�?    this.generateMatchTable();
+    
+    // 保存进行中的比赛
+    this.saveOngoingMatch();
+  },
+  
+  /**
+   * 结束比赛
+   */
+  endMatch: function() {
+    const that = this;
+    wx.showModal({
+      title: '确认结束比赛',
+      content: '结束比赛后将无法继续记分，确定要结束吗？',
+      success: function(res) {
+        if (res.confirm) {
+          // 处理比赛结果
+          that.processMatchResults();
+          
+          // 清除进行中的比赛
+          const storageKey = that.data.tournamentType === 'swiss' ? 'ongoingSwissMatch' : 'ongoingRoundRobinMatch';
+          wx.removeStorageSync(storageKey);
+          
+          // 如果是瑞士轮比赛，显示排名结�?          if (that.data.tournamentType === 'swiss') {
+            that.showRankingModal();
+          } else {
+            // 直接返回主页
+            wx.reLaunch({
+              url: '/pages/index/index'
+            });
+          }
+        }
+      }
+    });
+  },
+  
+  /**
+   * 显示排名结果弹窗
+   */
+  showRankingModal: function() {
+    // 确保排名是按照积分和胜场排序�?    const playerRankings = [...this.data.playerRankings];
+    playerRankings.sort((a, b) => {
+      if (a.points !== b.points) return b.points - a.points;
+      if (a.wins !== b.wins) return b.wins - a.wins;
+      return 0;
+    });
+    
+    this.setData({
+      showRankingModal: true,
+      playerRankings: playerRankings
+    });
+  },
+  
+  /**
+   * 隐藏排名结果弹窗
+   */
+  hideRankingModal: function() {
+    this.setData({
+      showRankingModal: false
+    });
+  },
+  
+  /**
+   * 确认排名结果
+   */
+  confirmRanking: function() {
+    this.hideRankingModal();
+    
+    // 返回主页
+    wx.reLaunch({
+      url: '/pages/index/index'
+    });
+  },
+  
+  /**
+   * 处理比赛结果
+   */
+  processMatchResults: function() {
+    const { matchTable, mode, tournamentType, currentRound, playerRankings } = this.data;
+    const matchHistory = [];
+    
+    // 添加检查临时选手的辅助函�?    const hasTemporaryPlayer = (players) => {
+      return players.some(player => player.isTemporary === true);
+    };
+    
+    if (tournamentType === 'round_robin') {
+      // 完全循环�?    // 遍历比赛表格，提取有效比赛结�?    for (let i = 0; i < matchTable.length; i++) {
+      for (let j = 0; j < matchTable[i].matches.length; j++) {
+        const match = matchTable[i].matches[j];
+        
+        // 跳过自己对自己的比赛和没有比分的比赛
+        if (match.score === '-' || match.score === '') continue;
+        
+        // 跳过已处理过的比赛（避免重复�?        if (i > j) continue;
+        
+        // 解析比分
+        const scores = match.score.split(':');
+        if (scores.length !== 2) continue;
+        
+        const leftScore = parseInt(scores[0]);
+        const rightScore = parseInt(scores[1]);
+        
+        if (isNaN(leftScore) || isNaN(rightScore)) continue;
+        
+        // 创建比赛记录
+        let matchRecord;
+        let leftTeamPlayers, rightTeamPlayers;
+        
+        if (mode === 'singles') {
+          leftTeamPlayers = [matchTable[i].player];
+          rightTeamPlayers = [match.opponent];
+          
+          matchRecord = {
+            id: Date.now().toString() + '_' + i + '_' + j,
+            date: new Date().toISOString(),
+            leftTeam: leftTeamPlayers,
+            rightTeam: rightTeamPlayers,
+            leftScore: leftScore,
+            rightScore: rightScore,
+            winner: leftScore > rightScore ? 'left' : 'right'
+          };
+        } else {
+          leftTeamPlayers = matchTable[i].team.players;
+          rightTeamPlayers = match.opponent.players;
+          
+          matchRecord = {
+            id: Date.now().toString() + '_' + i + '_' + j,
+            date: new Date().toISOString(),
+            leftTeam: leftTeamPlayers,
+            rightTeam: rightTeamPlayers,
+            leftScore: leftScore,
+            rightScore: rightScore,
+            winner: leftScore > rightScore ? 'left' : 'right'
+            };
+          }
+          
+          // 检查是否包含临时选手，如果包含则不记�?          if (hasTemporaryPlayer(leftTeamPlayers) || hasTemporaryPlayer(rightTeamPlayers)) {
+            continue;
+          }
+          
+          // 使用ELO系统更新积分
+          const scoreChanges = app.submitMatch(matchRecord);
+          
+          // 将积分变化值添加到比赛记录�?          matchRecord.winnerChange = scoreChanges.winnerChange;
+          matchRecord.loserChange = scoreChanges.loserChange;
+          
+          // 添加到历史记�?          matchHistory.push(matchRecord);
+        }
+      }
+    } else {
+      // 瑞士轮比�?      // 获取进行中的瑞士轮比赛数据，包括所有轮次的比赛
+      const ongoingMatch = wx.getStorageSync('ongoingSwissMatch');
+      // 使用allMatches而不是matchTable，确保包含所有轮次的比赛
+      const allRoundMatches = ongoingMatch ? (ongoingMatch.allMatches || []) : [];
+      
+      // 处理所有轮次的比赛
+      for (const match of allRoundMatches) {
+        // 跳过没有比分的比�?        if (!match.score || !match.winner) continue;
+        
+        // 解析比分
+        const scores = match.score.split(':');
+        if (scores.length !== 2) continue;
+        
+        const leftScore = parseInt(scores[0]);
+        const rightScore = parseInt(scores[1]);
+        
+        if (isNaN(leftScore) || isNaN(rightScore)) continue;
+        
+        // 创建比赛记录
+        let matchRecord;
+        let leftTeamPlayers, rightTeamPlayers;
+        const matchRound = match.round || 1; // 确保有轮次信�?        
+        if (mode === 'singles') {
+          leftTeamPlayers = [match.player1];
+          rightTeamPlayers = [match.player2];
+          
+          matchRecord = {
+            id: Date.now().toString() + '_' + match.player1.id + '_' + match.player2.id + '_round' + matchRound,
+            date: new Date().toISOString(),
+            leftTeam: leftTeamPlayers,
+            rightTeam: rightTeamPlayers,
+            leftScore: leftScore,
+            rightScore: rightScore,
+            winner: match.winner === 'player1' ? 'left' : 'right',
+            round: matchRound // 添加轮次信息
+          };
+        } else {
+          leftTeamPlayers = match.team1.players;
+          rightTeamPlayers = match.team2.players;
+          
+          matchRecord = {
+            id: Date.now().toString() + '_' + match.team1.id + '_' + match.team2.id + '_round' + matchRound,
+            date: new Date().toISOString(),
+            leftTeam: leftTeamPlayers,
+            rightTeam: rightTeamPlayers,
+            leftScore: leftScore,
+            rightScore: rightScore,
+            winner: match.winner === 'player1' ? 'left' : 'right',
+            round: matchRound // 添加轮次信息
+          };
+        }
+        
+        // 检查是否包含临时选手，如果包含则不记�?        if (hasTemporaryPlayer(leftTeamPlayers) || hasTemporaryPlayer(rightTeamPlayers)) {
+          continue;
+        }
+        
+        // 使用ELO系统更新积分
+        const scoreChanges = app.submitMatch(matchRecord);
+        
+        // 将积分变化值添加到比赛记录�?        matchRecord.winnerChange = scoreChanges.winnerChange;
+        matchRecord.loserChange = scoreChanges.loserChange;
+        
+        // 添加到历史记�?        matchHistory.push(matchRecord);
+      }
+    }
+    
+    // 更新全局比赛记录
+    const allMatchHistory = [...app.globalData.matchHistory, ...matchHistory];
+    app.globalData.matchHistory = allMatchHistory;
+    
+    // 保存到本地存�?    wx.setStorageSync('matchHistory', allMatchHistory);
+  },
+
+  /**
+   * 显示添加临时选手弹窗
+   */
+  showAddTempPlayerModal: function() {
+    this.setData({
+      showAddTempPlayerModal: true,
+      tempPlayerName: '',
+      tempPlayerGender: 'male'
+    });
+  },
+
+  /**
+   * 隐藏添加临时选手弹窗
+   */
+  hideAddTempPlayerModal: function() {
+    this.setData({
+      showAddTempPlayerModal: false
+    });
+  },
+
+  /**
+   * 监听临时选手姓名输入
+   */
+  onTempPlayerNameInput: function(e) {
+    this.setData({
+      tempPlayerName: e.detail.value
+    });
+  },
+
+  /**
+   * 选择临时选手性别
+   */
+  selectTempPlayerGender: function(e) {
+    const gender = e.currentTarget.dataset.gender;
+    this.setData({
+      tempPlayerGender: gender
+    });
+  },
+
+  /**
+   * 添加临时选手
+   */
+  addTempPlayer: function() {
+    const { tempPlayerName, tempPlayerGender, players } = this.data;
+    
+    // 验证姓名
+    if (!tempPlayerName.trim()) {
+      wx.showToast({
+        title: '请输入选手姓名',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    // 检查名称是否重�?    const nameExists = players.some(player => player.name === tempPlayerName);
+    
+    // 创建临时选手对象，添�?�?标识
+    const displayName = nameExists ? `${tempPlayerName}(�?` : `${tempPlayerName}(�?`;
+    
+    const tempPlayer = {
+      id: 'temp_' + Date.now(),
+      name: displayName,
+      gender: tempPlayerGender,
+      score: 1000, // 默认分数
+      avatarUrl: tempPlayerGender === 'female' ? '/images/default-avatar-female.png' : '/images/default-avatar.png',
+      isTemporary: true
+    };
+    
+    // 添加到选手列表和已选择列表
+    const updatedPlayers = [...this.data.players, tempPlayer];
+    const updatedSelectedPlayers = [...this.data.selectedPlayers, tempPlayer];
+    
+    this.setData({
+      players: updatedPlayers,
+      selectedPlayers: updatedSelectedPlayers,
+      showAddTempPlayerModal: false
+    });
+    
+    wx.showToast({
+      title: '临时选手已添�?,
+      icon: 'success'
+    });
+  },
+
+  /**
+   * 显示比分输入弹窗
+   */
+  showScoreInputModal: function(e) {
+    const row = e.currentTarget.dataset.row;
+    const col = e.currentTarget.dataset.col;
+    const matchIndex = e.currentTarget.dataset.matchIndex;
+    
+    // 判断是否为瑞士轮比赛
+    if (this.data.tournamentType === 'swiss') {
+      // 获取瑞士轮比赛数�?      const match = this.data.matchTable[matchIndex];
+      const team = this.data.mode === 'singles' ? match.player1 : match.team1;
+      const opponent = this.data.mode === 'singles' ? match.player2 : match.team2;
+      
+      // 解析已有的比�?      let teamScore = '';
+      let opponentScore = '';
+      if (match.score && match.score.includes(':')) {
+        const scores = match.score.split(':');
+        teamScore = scores[0];
+        opponentScore = scores[1];
+      }
+      
+      this.setData({
+        showScoreInputModal: true,
+        currentMatch: {
+          matchIndex: matchIndex,
+          team: team,
+          opponent: opponent,
+          isSwiss: true
+        },
+        teamScore: teamScore,
+        opponentScore: opponentScore,
+        activeScoreInput: 'team' // 默认激活队伍分数输入框
+      });
+    } else {
+      // 获取对应的比赛数�?      const match = this.data.matchTable[row].matches[col];
+      const team = this.data.matchTable[row].player || this.data.matchTable[row].team;
+      const opponent = match.opponent;
+      
+      // 解析已有的比�?      let teamScore = '';
+      let opponentScore = '';
+      if (match.score && match.score.includes(':')) {
+        const scores = match.score.split(':');
+        teamScore = scores[0];
+        opponentScore = scores[1];
+      }
+      
+      this.setData({
+        showScoreInputModal: true,
+        currentMatch: {
+          row: row,
+          col: col,
+          team: team,
+          opponent: opponent,
+          isSwiss: false
+        },
+        teamScore: teamScore,
+        opponentScore: opponentScore,
+        activeScoreInput: 'team' // 默认激活队伍分数输入框
+      });
+    }
+  },
+  
+  /**
+   * 隐藏比分输入弹窗
+   */
+  hideScoreInputModal: function() {
+    this.setData({
+      showScoreInputModal: false,
+      currentMatch: null,
+      teamScore: '',
+      opponentScore: ''
+    });
+  },
+  
+  /**
+   * 处理队伍分数输入
+   */
+  onTeamScoreInput: function(e) {
+    this.setData({
+      teamScore: e.detail.value
+    });
+  },
+  
+  /**
+   * 处理对手分数输入
+   */
+  onOpponentScoreInput: function(e) {
+    this.setData({
+      opponentScore: e.detail.value
+    });
+  },
+  
+  /**
+   * 设置快捷分数
+   */
+  setQuickScore: function(e) {
+    const { team, opponent } = e.currentTarget.dataset;
+    
+    this.setData({
+      teamScore: team,
+      opponentScore: opponent
+    });
+  },
+  
+  /**
+   * 确认比分
+   */
+  confirmScore: function() {
+    const { currentMatch, teamScore, opponentScore } = this.data;
+    
+    if (!teamScore && !opponentScore) {
+      wx.showToast({
+        title: '请输入比�?,
+        icon: 'none'
+      });
+      return;
+    }
+    
+    if (currentMatch.isSwiss) {
+      // 处理瑞士轮比赛的比分
+      const score = teamScore + ':' + opponentScore;
+      
+      // 更新比分
+      const matchTable = [...this.data.matchTable];
+      matchTable[currentMatch.matchIndex].score = score;
+      
+      // 解析比分
+      const leftScore = parseInt(teamScore);
+      const rightScore = parseInt(opponentScore);
+      
+      if (!isNaN(leftScore) && !isNaN(rightScore)) {
+        if (leftScore > rightScore) {
+          matchTable[currentMatch.matchIndex].winner = 'player1';
+        } else if (rightScore > leftScore) {
+          matchTable[currentMatch.matchIndex].winner = 'player2';
+        } else {
+          matchTable[currentMatch.matchIndex].winner = 'tie';
+        }
+      }
+      
+      this.setData({
+        matchTable: matchTable
+      });
+    } else {
+      // 调用原有的inputScore方法处理分数
+      this.inputScore({
+        currentTarget: {
+          dataset: {
+            row: currentMatch.row,
+            col: currentMatch.col,
+            score: teamScore + ':' + opponentScore
+          }
+        }
+      });
+    }
+    
+    // 保存进行中的比赛
+    this.saveOngoingMatch();
+    
+    // 隐藏弹窗
+    this.hideScoreInputModal();
+  },
+
+  /**
+   * 清除双打组合
+   */
+  clearTeam: function(e) {
+    const index = e.currentTarget.dataset.index;
+    const { selectedPlayers } = this.data;
+    let newSelectedPlayers = [...selectedPlayers];
+    
+    if (index === 0) {
+      // 清除第一�?      newSelectedPlayers.splice(0, 2);
+      // 如果还有第二组，将其移到第一组位�?      if (newSelectedPlayers.length >= 2) {
+        const team2 = newSelectedPlayers.splice(0, 2);
+        newSelectedPlayers = team2.concat(newSelectedPlayers);
+      }
+    } else if (index === 1) {
+      // 清除第二�?      newSelectedPlayers.splice(2, 2);
+    }
+    
+    this.setData({
+      selectedPlayers: newSelectedPlayers
+    });
+  },
+
+  /**
+   * 移除双打组合
+   */
+  removeDoublesTeam: function(e) {
+    const index = e.currentTarget.dataset.index;
+    const { selectedPlayers } = this.data;
+    let newSelectedPlayers = [...selectedPlayers];
+    
+    // 移除指定索引处的两名选手
+    newSelectedPlayers.splice(index, 2);
+    
+    this.setData({
+      selectedPlayers: newSelectedPlayers
+    });
+  },
+
+  /**
+   * 从已选择列表中移除选手
+   */
+  removeSelectedPlayer: function(e) {
+    const playerId = e.currentTarget.dataset.playerId;
+    const selectedPlayers = this.data.selectedPlayers.filter(p => p.id !== playerId);
+    
+    this.setData({
+      selectedPlayers: selectedPlayers
+    });
+  },
+
+  /**
+   * 设置当前激活的分数输入�?   */
+  setActiveScoreInput: function(e) {
+    const input = e.currentTarget.dataset.input;
+    this.setData({
+// 获取应用实例
+const app = getApp();
+
+Page({
+  /**
+   * 页面的初始数�?   */
+  data: {
+    mode: 'singles', // 默认为单打模�?    tournamentType: 'round_robin', // 比赛类型：round_robin(完全循环)或swiss(瑞士�?
+    players: [], // 所有可选择的选手
+    selectedPlayers: [], // 已选择的选手
+    matchTable: [], // 比赛表格数据
+    showPlayerSelectModal: false, // 是否显示选手选择弹窗
+    isMatchStarted: false, // 比赛是否已开�?    isMatchEnded: false, // 比赛是否已结�?    currentRound: 1, // 当前轮次（瑞士轮使用�?    totalRounds: 0, // 总轮次（瑞士轮使用）
+    playerRankings: [], // 选手排名（瑞士轮使用�?    showAddTempPlayerModal: false, // 是否显示添加临时选手弹窗
+    tempPlayerName: '', // 临时选手姓名
+    tempPlayerGender: 'male', // 临时选手性别，默认为�?    isDoubles: false, // 是否为双打模�?    showScoreInputModal: false,
+    currentMatch: null,
+    teamScore: '',
+    opponentScore: '',
+    activeScoreInput: 'team', // 当前激活的分数输入框，可选值：'team'�?opponent'
+    showRankingModal: false, // 是否显示排名结果弹窗
+  },
+
+  /**
+   * 生命周期函数--监听页面加载
+   */
+  onLoad: function (options) {
+    const mode = options.mode || 'singles';
+    const tournamentType = options.tournament_type || 'round_robin';
+    
+    this.setData({
+      mode: mode,
+      tournamentType: tournamentType,
+      isDoubles: mode === 'doubles'
+    });
+    
+    // 加载选手数据
+    this.loadPlayers();
+    
+    // 检查是否有进行中的比赛
+    this.checkOngoingMatch();
+  },
+  
+  /**
+   * 加载选手数据
+   */
+  loadPlayers: function() {
+    const allPlayers = app.globalData.players || [];
+    
+    this.setData({
+      players: allPlayers
+    });
+  },
+  
+  /**
+   * 检查是否有进行中的比赛
+   */
+  checkOngoingMatch: function() {
+    const storageKey = this.data.tournamentType === 'swiss' ? 'ongoingSwissMatch' : 'ongoingRoundRobinMatch';
+    const ongoingMatch = wx.getStorageSync(storageKey);
+    
+    if (ongoingMatch && ongoingMatch.mode === this.data.mode) {
+      this.setData({
+        selectedPlayers: ongoingMatch.players,
+        matchTable: ongoingMatch.matchTable,
+        isMatchStarted: true,
+        currentRound: ongoingMatch.currentRound || 1,
+        totalRounds: ongoingMatch.totalRounds || 0,
+        playerRankings: ongoingMatch.playerRankings || []
+      });
+    }
+  },
+  
+  /**
+   * 显示选手选择弹窗
+   */
+  showPlayerSelect: function() {
+    this.setData({
+      showPlayerSelectModal: true
+    });
+  },
+  
+  /**
+   * 隐藏选手选择弹窗
+   */
+  hidePlayerSelect: function() {
+    this.setData({
+      showPlayerSelectModal: false
+    });
+  },
+  
+  /**
+   * 切换选手选择状�?   */
+  togglePlayerSelection: function(e) {
+    const playerId = e.currentTarget.dataset.id;
+    const { selectedPlayers, isDoubles, players } = this.data;
+    
+    // 查找选手对象
+    const player = players.find(p => p.id === playerId);
+    if (!player) return;
+    
+    // 查找选手是否已被选中
+    const index = selectedPlayers.findIndex(p => p.id === playerId);
+    
+    // 如果是双打模�?    if (isDoubles) {
+      // 如果已经选择�?名选手，且当前选手未被选中，则不允许再�?      if (selectedPlayers.length >= 4 && index === -1) {
+        wx.showToast({
+          title: '双打模式最多选择4名选手',
+          icon: 'none'
+        });
+        return;
+      }
+      
+      // 切换选择状�?      let newSelectedPlayers = [...selectedPlayers];
+      if (index !== -1) {
+        // 取消选择
+        newSelectedPlayers.splice(index, 1);
+      } else {
+        // 添加选择
+        newSelectedPlayers.push(player);
+      }
+      
+      this.setData({
+        selectedPlayers: newSelectedPlayers
+      });
+    } else {
+      // 单打模式 - 移除选手数量限制
+      // 切换选择状�?      let newSelectedPlayers = [...selectedPlayers];
+      if (index !== -1) {
+        // 取消选择
+        newSelectedPlayers.splice(index, 1);
+      } else {
+        // 添加选择
+        newSelectedPlayers.push(player);
+      }
+      
+      this.setData({
+        selectedPlayers: newSelectedPlayers
+      });
+    }
+  },
+  
+  /**
+   * 检查选手是否被选中
+   */
+  isPlayerSelected: function(playerId) {
+    return this.data.selectedPlayers.some(function(player) {
+      return player.id === playerId;
+    });
+  },
+  
+  /**
+   * 确认选手选择
+   */
+  confirmPlayerSelection: function() {
+    const { selectedPlayers, mode, tournamentType } = this.data;
+    
+    // 检查选手数量
+    if (selectedPlayers.length < 2) {
+      wx.showToast({
+        title: '至少需�?名选手',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    // 如果是双打模式，检查选手数量是否为偶�?    if (mode === 'doubles' && selectedPlayers.length % 2 !== 0) {
+      wx.showToast({
+        title: '双打模式需要偶数名选手',
+        icon: 'none'
+      });
+      return;
+    }
+
+    // 如果是双打模式，组织选手为组�?    if (mode === 'doubles') {
+      // 检查是否有足够的男女选手组成混双
+      const maleCount = selectedPlayers.filter(p => p.gender === 'male').length;
+      const femaleCount = selectedPlayers.filter(p => p.gender === 'female').length;
+      
+      // 提示性别组合情况
+      let pairsInfo = '';
+      if (maleCount >= 2 && femaleCount >= 2) {
+        pairsInfo = '将组成男双、女双和混双组合';
+      } else if (maleCount >= 2) {
+        pairsInfo = '将组成男双组�?;
+      } else if (femaleCount >= 2) {
+        pairsInfo = '将组成女双组�?;
+      } else if (maleCount > 0 && femaleCount > 0) {
+        pairsInfo = '将组成混双组�?;
+      }
+      
+      wx.showToast({
+        title: pairsInfo,
+        icon: 'none',
+        duration: 2000
+      });
+    }
+    
+    // 计算瑞士轮总轮次（如果是瑞士轮�?    if (tournamentType === 'swiss') {
+      // 瑞士轮通常为log2(n)向上取整，最多不超过选手数量-1
+      const playerCount = mode === 'singles' ? selectedPlayers.length : selectedPlayers.length / 2;
+      const totalRounds = Math.min(Math.ceil(Math.log2(playerCount)), playerCount - 1);
+      
+      this.setData({
+        totalRounds: totalRounds
+      });
+      
+      // 初始化选手排名（按照初始分数排序）
+      const playerRankings = selectedPlayers.map(player => ({
+        ...player,
+        wins: 0,
+        losses: 0,
+        points: 0,
+        opponents: []
+      })).sort((a, b) => b.score - a.score);
+      
+      this.setData({
+        playerRankings: playerRankings
+      });
+    }
+    
+    // 生成比赛表格数据
+    this.generateMatchTable();
+    
+    this.setData({
+      showPlayerSelectModal: false,
+      isMatchStarted: true
+    });
+    
+    // 保存进行中的比赛
+    this.saveOngoingMatch();
+  },
+  
+  /**
+   * 生成比赛表格数据
+   */
+  generateMatchTable: function() {
+    const { selectedPlayers, mode, tournamentType, currentRound, playerRankings } = this.data;
+    const matchTable = [];
+    
+    if (tournamentType === 'round_robin') {
+      // 完全循环�?    if (mode === 'singles') {
+      // 单打模式
+      for (let i = 0; i < selectedPlayers.length; i++) {
+        const row = {
+          player: selectedPlayers[i],
+          matches: []
+        };
+        
+        for (let j = 0; j < selectedPlayers.length; j++) {
+          if (i === j) {
+            // 自己对自己，显示斜杠
+            row.matches.push({
+              opponent: selectedPlayers[j],
+              score: '/',
+              isSelfMatch: true
+            });
+          } else {
+            // 查找是否已有比赛记录
+            const existingTable = this.data.matchTable || [];
+            const existingRow = existingTable.find(r => r.player.id === selectedPlayers[i].id);
+            const existingMatch = existingRow ? existingRow.matches.find(m => m.opponent.id === selectedPlayers[j].id) : null;
+            
+            row.matches.push({
+              opponent: selectedPlayers[j],
+              score: existingMatch ? existingMatch.score : '',
+              id: `match_${selectedPlayers[i].id}_${selectedPlayers[j].id}`
+            });
+          }
+        }
+        
+        matchTable.push(row);
+      }
+    } else {
+      // 双打模式
+      // 生成所有可能的双打组合
+      const teams = [];
+        
+        // 先将选手按性别分组
+        const malePlayers = selectedPlayers.filter(p => p.gender === 'male');
+        const femalePlayers = selectedPlayers.filter(p => p.gender === 'female');
+        
+        // 尽可能组成男�?        for (let i = 0; i < malePlayers.length - 1; i += 2) {
+          if (i + 1 < malePlayers.length) {
+            teams.push({
+              id: `${malePlayers[i].id}_${malePlayers[i + 1].id}`,
+              players: [malePlayers[i], malePlayers[i + 1]],
+              name: `${malePlayers[i].name}/${malePlayers[i + 1].name}`,
+              type: 'male' // 标记为男�?            });
+          }
+        }
+        
+        // 尽可能组成女�?        for (let i = 0; i < femalePlayers.length - 1; i += 2) {
+          if (i + 1 < femalePlayers.length) {
+            teams.push({
+              id: `${femalePlayers[i].id}_${femalePlayers[i + 1].id}`,
+              players: [femalePlayers[i], femalePlayers[i + 1]],
+              name: `${femalePlayers[i].name}/${femalePlayers[i + 1].name}`,
+              type: 'female' // 标记为女�?            });
+          }
+        }
+        
+        // 剩余的男选手和女选手组成混双
+        const remainingMales = malePlayers.length % 2 === 1 ? [malePlayers[malePlayers.length - 1]] : [];
+        const remainingFemales = femalePlayers.length % 2 === 1 ? [femalePlayers[femalePlayers.length - 1]] : [];
+        
+        const minCount = Math.min(remainingMales.length, remainingFemales.length);
+        for (let i = 0; i < minCount; i++) {
+        teams.push({
+            id: `${remainingMales[i].id}_${remainingFemales[i].id}`,
+            players: [remainingMales[i], remainingFemales[i]],
+            name: `${remainingMales[i].name}/${remainingFemales[i].name}`,
+            type: 'mixed' // 标记为混�?          });
+        }
+        
+        // 如果还有剩余选手，两两组�?        const allRemaining = [...remainingMales.slice(minCount), ...remainingFemales.slice(minCount)];
+        for (let i = 0; i < allRemaining.length - 1; i += 2) {
+          if (i + 1 < allRemaining.length) {
+            const type = allRemaining[i].gender === allRemaining[i + 1].gender ? 
+                        (allRemaining[i].gender === 'male' ? 'male' : 'female') : 'mixed';
+            teams.push({
+              id: `${allRemaining[i].id}_${allRemaining[i + 1].id}`,
+              players: [allRemaining[i], allRemaining[i + 1]],
+              name: `${allRemaining[i].name}/${allRemaining[i + 1].name}`,
+              type: type
+            });
+          }
+        }
+      
+      for (let i = 0; i < teams.length; i++) {
+        const row = {
+          team: teams[i],
+          matches: []
+        };
+        
+        for (let j = 0; j < teams.length; j++) {
+          if (i === j) {
+            // 自己对自己，显示斜杠
+            row.matches.push({
+              opponent: teams[j],
+              score: '/',
+              isSelfMatch: true
+            });
+          } else {
+            // 查找是否已有比赛记录
+            const existingTable = this.data.matchTable || [];
+            const existingRow = existingTable.find(r => r.team && r.team.id === teams[i].id);
+            const existingMatch = existingRow ? existingRow.matches.find(m => m.opponent.id === teams[j].id) : null;
+            
+            row.matches.push({
+              opponent: teams[j],
+              score: existingMatch ? existingMatch.score : '',
+              id: `match_${teams[i].id}_${teams[j].id}`
+            });
+          }
+        }
+        
+        matchTable.push(row);
+        }
+      }
+    } else {
+      // 瑞士轮比�?      if (mode === 'singles') {
+        // 单打模式
+        if (currentRound === 1) {
+          // 第一轮按照初始排名配对：1 vs n/2+1, 2 vs n/2+2, ...
+          const n = selectedPlayers.length;
+          const halfN = Math.ceil(n / 2);
+          
+          // 确保所有选手都能参与比赛
+          for (let i = 0; i < halfN; i++) {
+            if (i + halfN < n) {
+              // 正常配对
+              const match = {
+                round: 1,
+                player1: selectedPlayers[i],
+                player2: selectedPlayers[i + halfN],
+                score: '',
+                winner: null
+              };
+              
+              matchTable.push(match);
+            } else if (i < n) {
+              // 如果选手数量为奇数，最后一名选手轮空或安排特殊比�?              console.log("选手数量为奇数，最后一名选手轮空");
+              // 可以在这里添加轮空逻辑
+            }
+          }
+        } else {
+          // 后续轮次按照当前排名配对
+          // 这里简单实现，实际瑞士轮有更复杂的配对规则
+          const availablePlayers = [...playerRankings];
+          
+          while (availablePlayers.length >= 2) {
+            const player1 = availablePlayers.shift();
+            
+            // 找到未曾对阵过的对手
+            let opponentIndex = -1;
+            for (let i = 0; i < availablePlayers.length; i++) {
+              if (!player1.opponents.includes(availablePlayers[i].id)) {
+                opponentIndex = i;
+                break;
+              }
+            }
+            
+            // 如果找不到未曾对阵过的对手，就选择第一个可用的对手
+            if (opponentIndex === -1 && availablePlayers.length > 0) {
+              opponentIndex = 0;
+            }
+            
+            if (opponentIndex !== -1) {
+              const player2 = availablePlayers.splice(opponentIndex, 1)[0];
+              
+              const match = {
+                round: currentRound,
+                player1: player1,
+                player2: player2,
+                score: '',
+                winner: null
+              };
+              
+              matchTable.push(match);
+            }
+          }
+        }
+      } else {
+        // 双打模式
+        if (currentRound === 1) {
+          // 生成所有可能的双打组合
+          const teams = [];
+          for (let i = 0; i < selectedPlayers.length; i += 2) {
+            if (i + 1 < selectedPlayers.length) {
+              teams.push({
+                id: `${selectedPlayers[i].id}_${selectedPlayers[i + 1].id}`,
+                players: [selectedPlayers[i], selectedPlayers[i + 1]],
+                name: `${selectedPlayers[i].name}/${selectedPlayers[i + 1].name}`,
+                wins: 0,
+                losses: 0,
+                points: 0,
+                opponents: []
+              });
+            }
+          }
+
+          // 保存队伍信息到playerRankings
+          this.setData({
+            playerRankings: teams
+          });
+          
+          // 第一轮按照队伍数量配�?          const n = teams.length;
+          const halfN = Math.ceil(n / 2);
+          
+          // 确保所有队伍都能参与比�?          for (let i = 0; i < halfN; i++) {
+            if (i + halfN < n) {
+              // 正常配对
+              const match = {
+                round: 1,
+                team1: teams[i],
+                team2: teams[i + halfN],
+                score: '',
+                winner: null
+              };
+              
+              matchTable.push(match);
+            } else if (i < n) {
+              // 如果队伍数量为奇数，最后一支队伍轮空或安排特殊比赛
+              console.log("队伍数量为奇数，最后一支队伍轮�?);
+              // 可以在这里添加轮空逻辑
+            }
+          }
+        } else {
+          // 后续轮次按照当前排名配对
+          // 这里简单实现，实际瑞士轮有更复杂的配对规则
+          const availableTeams = [...this.data.playerRankings];
+          
+          while (availableTeams.length >= 2) {
+            const team1 = availableTeams.shift();
+            
+            // 找到未曾对阵过的对手
+            let opponentIndex = -1;
+            for (let i = 0; i < availableTeams.length; i++) {
+              if (!team1.opponents.includes(availableTeams[i].id)) {
+                opponentIndex = i;
+                break;
+              }
+            }
+            
+            // 如果找不到未曾对阵过的对手，就选择第一个可用的对手
+            if (opponentIndex === -1 && availableTeams.length > 0) {
+              opponentIndex = 0;
+            }
+            
+            if (opponentIndex !== -1) {
+              const team2 = availableTeams.splice(opponentIndex, 1)[0];
+              
+              const match = {
+                round: currentRound,
+                team1: team1,
+                team2: team2,
+                score: '',
+                winner: null
+              };
+              
+              matchTable.push(match);
+            }
+          }
+        }
+      }
+    }
+    
+    this.setData({
+      matchTable: matchTable
+    });
+  },
+  
+  /**
+   * 保存进行中的比赛
+   */
+  saveOngoingMatch: function() {
+    const { selectedPlayers, matchTable, mode, tournamentType, currentRound, totalRounds, playerRankings } = this.data;
+    
+    const storageKey = tournamentType === 'swiss' ? 'ongoingSwissMatch' : 'ongoingRoundRobinMatch';
+    
+    // 如果是瑞士轮，保留之前的所有比赛记�?    if (tournamentType === 'swiss') {
+      const ongoingMatch = wx.getStorageSync(storageKey) || {};
+      const allMatches = ongoingMatch.allMatches || [];
+      
+      wx.setStorageSync(storageKey, {
+        mode: mode,
+        tournamentType: tournamentType,
+        players: selectedPlayers,
+        matchTable: matchTable,
+        currentRound: currentRound,
+        totalRounds: totalRounds,
+        playerRankings: playerRankings,
+        allMatches: allMatches, // 保存所有轮次的比赛
+        updateTime: new Date().toISOString()
+      });
+    } else {
+      wx.setStorageSync(storageKey, {
+        mode: mode,
+        tournamentType: tournamentType,
+        players: selectedPlayers,
+        matchTable: matchTable,
+        currentRound: currentRound,
+        totalRounds: totalRounds,
+        playerRankings: playerRankings,
+        updateTime: new Date().toISOString()
+      });
+    }
+  },
+  
+  /**
+   * 输入比分
+   */
+  inputScore: function(e) {
+    const { row, col } = e.currentTarget.dataset;
+    // 获取分数，优先从dataset.score获取，如果没有则从detail.value获取
+    const score = e.currentTarget.dataset.score || e.detail.value;
+    
+    // 更新比分
+    const matchTable = [...this.data.matchTable];
+    matchTable[row].matches[col].score = score;
+    
+    // 同时更新对应的反向比�?    const player1 = matchTable[row].player || matchTable[row].team;
+    const player2 = matchTable[row].matches[col].opponent;
+    
+    const reverseRow = matchTable.findIndex(r => 
+      (r.player && r.player.id === player2.id) || 
+      (r.team && r.team.id === player2.id)
+    );
+    
+    const reverseCol = matchTable[reverseRow].matches.findIndex(m => 
+      (m.opponent.id === player1.id)
+    );
+    
+    matchTable[reverseRow].matches[reverseCol].score = score;
+    
+    this.setData({
+      matchTable: matchTable
+    });
+    
+    // 保存进行中的比赛
+    this.saveOngoingMatch();
+  },
+  
+  /**
+   * 输入瑞士轮比赛比�?   */
+  inputSwissScore: function(e) {
+    const matchIndex = e.currentTarget.dataset.matchIndex;
+    const score = e.detail.value;
+    
+    // 更新比分
+    const matchTable = [...this.data.matchTable];
+    matchTable[matchIndex].score = score;
+    
+    // 解析比分
+    const scores = score.split(':');
+    if (scores.length === 2) {
+      const leftScore = parseInt(scores[0]);
+      const rightScore = parseInt(scores[1]);
+      
+      if (!isNaN(leftScore) && !isNaN(rightScore)) {
+        if (leftScore > rightScore) {
+          matchTable[matchIndex].winner = 'player1';
+        } else if (rightScore > leftScore) {
+          matchTable[matchIndex].winner = 'player2';
+        } else {
+          matchTable[matchIndex].winner = 'tie';
+        }
+      }
+    }
+    
+    this.setData({
+      matchTable: matchTable
+    });
+    
+    // 保存进行中的比赛
+    this.saveOngoingMatch();
+  },
+  
+  /**
+   * 进入下一�?   */
+  nextRound: function() {
+    const { matchTable, currentRound, totalRounds, mode } = this.data;
+    
+    // 检查当前轮次是否所有比赛都已完�?    const allMatchesCompleted = matchTable.every(match => match.winner);
+    
+    if (!allMatchesCompleted) {
+      wx.showModal({
+        title: '未完成比�?,
+        content: '当前轮次还有未完成的比赛，确定要继续吗？',
+        success: (res) => {
+          if (res.confirm) {
+            this.processCurrentRound();
+          }
+        }
+      });
+    } else {
+      this.processCurrentRound();
+    }
+  },
+  
+  /**
+   * 处理当前轮次结果并进入下一�?   */
+  processCurrentRound: function() {
+    const { matchTable, currentRound, mode, playerRankings } = this.data;
+    
+    // 更新选手排名
+    const updatedRankings = [...playerRankings];
+    
+    // 处理本轮比赛结果
+    for (const match of matchTable) {
+      // 跳过没有结果的比�?      if (!match.winner) continue;
+      
+      if (mode === 'singles') {
+        // 单打模式
+        const player1Index = updatedRankings.findIndex(p => p.id === match.player1.id);
+        const player2Index = updatedRankings.findIndex(p => p.id === match.player2.id);
+        
+        if (player1Index !== -1 && player2Index !== -1) {
+          // 记录对手
+          updatedRankings[player1Index].opponents.push(match.player2.id);
+          updatedRankings[player2Index].opponents.push(match.player1.id);
+          
+          // 更新胜负场次和积�?          if (match.winner === 'player1') {
+            updatedRankings[player1Index].wins++;
+            updatedRankings[player1Index].points += 2;
+            updatedRankings[player2Index].losses++;
+          } else if (match.winner === 'player2') {
+            updatedRankings[player2Index].wins++;
+            updatedRankings[player2Index].points += 2;
+            updatedRankings[player1Index].losses++;
+          } else if (match.winner === 'tie') {
+            updatedRankings[player1Index].points += 1;
+            updatedRankings[player2Index].points += 1;
+          }
+        }
+      } else {
+        // 双打模式
+        const team1Index = updatedRankings.findIndex(t => t.id === match.team1.id);
+        const team2Index = updatedRankings.findIndex(t => t.id === match.team2.id);
+        
+        if (team1Index !== -1 && team2Index !== -1) {
+          // 记录对手
+          updatedRankings[team1Index].opponents.push(match.team2.id);
+          updatedRankings[team2Index].opponents.push(match.team1.id);
+          
+          // 更新胜负场次和积�?          if (match.winner === 'player1') {
+            updatedRankings[team1Index].wins++;
+            updatedRankings[team1Index].points += 2;
+            updatedRankings[team2Index].losses++;
+          } else if (match.winner === 'player2') {
+            updatedRankings[team2Index].wins++;
+            updatedRankings[team2Index].points += 2;
+            updatedRankings[team1Index].losses++;
+          } else if (match.winner === 'tie') {
+            updatedRankings[team1Index].points += 1;
+            updatedRankings[team2Index].points += 1;
+          }
+        }
+      }
+    }
+    
+    // 按积分排�?    updatedRankings.sort((a, b) => {
+      if (a.points !== b.points) return b.points - a.points;
+      if (a.wins !== b.wins) return b.wins - a.wins;
+      return 0;
+    });
+    
+    // 保存当前轮次的比赛记录到本地存储
+    const ongoingMatch = wx.getStorageSync('ongoingSwissMatch') || {};
+    const allMatches = ongoingMatch.allMatches || [];
+    
+    // 将当前轮次的比赛添加到历史记�?    const currentRoundMatches = matchTable.filter(match => match.winner);
+    allMatches.push(...currentRoundMatches);
+    
+    // 更新本地存储
+    ongoingMatch.allMatches = allMatches;
+    wx.setStorageSync('ongoingSwissMatch', ongoingMatch);
+    
+    // 进入下一�?    this.setData({
+      currentRound: currentRound + 1,
+      playerRankings: updatedRankings
+    });
+    
+    // 生成下一轮比�?    this.generateMatchTable();
+    
+    // 保存进行中的比赛
+    this.saveOngoingMatch();
+  },
+  
+  /**
+   * 结束比赛
+   */
+  endMatch: function() {
+    const that = this;
+    wx.showModal({
+      title: '确认结束比赛',
+      content: '结束比赛后将无法继续记分，确定要结束吗？',
+      success: function(res) {
+        if (res.confirm) {
+          // 处理比赛结果
+          that.processMatchResults();
+          
+          // 清除进行中的比赛
+          const storageKey = that.data.tournamentType === 'swiss' ? 'ongoingSwissMatch' : 'ongoingRoundRobinMatch';
+          wx.removeStorageSync(storageKey);
+          
+          // 如果是瑞士轮比赛，显示排名结�?          if (that.data.tournamentType === 'swiss') {
+            that.showRankingModal();
+          } else {
+            // 直接返回主页
+            wx.reLaunch({
+              url: '/pages/index/index'
+            });
+          }
+        }
+      }
+    });
+  },
+  
+  /**
+   * 显示排名结果弹窗
+   */
+  showRankingModal: function() {
+    // 确保排名是按照积分和胜场排序�?    const playerRankings = [...this.data.playerRankings];
+    playerRankings.sort((a, b) => {
+      if (a.points !== b.points) return b.points - a.points;
+      if (a.wins !== b.wins) return b.wins - a.wins;
+      return 0;
+    });
+    
+    this.setData({
+      showRankingModal: true,
+      playerRankings: playerRankings
+    });
+  },
+  
+  /**
+   * 隐藏排名结果弹窗
+   */
+  hideRankingModal: function() {
+    this.setData({
+      showRankingModal: false
+    });
+  },
+  
+  /**
+   * 确认排名结果
+   */
+  confirmRanking: function() {
+    this.hideRankingModal();
+    
+    // 返回主页
+    wx.reLaunch({
+      url: '/pages/index/index'
+    });
+  },
+  
+  /**
+   * 处理比赛结果
+   */
+  processMatchResults: function() {
+    const { matchTable, mode, tournamentType, currentRound, playerRankings } = this.data;
+    const matchHistory = [];
+    
+    // 添加检查临时选手的辅助函�?    const hasTemporaryPlayer = (players) => {
+      return players.some(player => player.isTemporary === true);
+    };
+    
+    if (tournamentType === 'round_robin') {
+      // 完全循环�?    // 遍历比赛表格，提取有效比赛结�?    for (let i = 0; i < matchTable.length; i++) {
+      for (let j = 0; j < matchTable[i].matches.length; j++) {
+        const match = matchTable[i].matches[j];
+        
+        // 跳过自己对自己的比赛和没有比分的比赛
+        if (match.score === '-' || match.score === '') continue;
+        
+        // 跳过已处理过的比赛（避免重复�?        if (i > j) continue;
+        
+        // 解析比分
+        const scores = match.score.split(':');
+        if (scores.length !== 2) continue;
+        
+        const leftScore = parseInt(scores[0]);
+        const rightScore = parseInt(scores[1]);
+        
+        if (isNaN(leftScore) || isNaN(rightScore)) continue;
+        
+        // 创建比赛记录
+        let matchRecord;
+        let leftTeamPlayers, rightTeamPlayers;
+        
+        if (mode === 'singles') {
+          leftTeamPlayers = [matchTable[i].player];
+          rightTeamPlayers = [match.opponent];
+          
+          matchRecord = {
+            id: Date.now().toString() + '_' + i + '_' + j,
+            date: new Date().toISOString(),
+            leftTeam: leftTeamPlayers,
+            rightTeam: rightTeamPlayers,
+            leftScore: leftScore,
+            rightScore: rightScore,
+            winner: leftScore > rightScore ? 'left' : 'right'
+          };
+        } else {
+          leftTeamPlayers = matchTable[i].team.players;
+          rightTeamPlayers = match.opponent.players;
+          
+          matchRecord = {
+            id: Date.now().toString() + '_' + i + '_' + j,
+            date: new Date().toISOString(),
+            leftTeam: leftTeamPlayers,
+            rightTeam: rightTeamPlayers,
+            leftScore: leftScore,
+            rightScore: rightScore,
+            winner: leftScore > rightScore ? 'left' : 'right'
+            };
+          }
+          
+          // 检查是否包含临时选手，如果包含则不记�?          if (hasTemporaryPlayer(leftTeamPlayers) || hasTemporaryPlayer(rightTeamPlayers)) {
+            continue;
+          }
+          
+          // 使用ELO系统更新积分
+          const scoreChanges = app.submitMatch(matchRecord);
+          
+          // 将积分变化值添加到比赛记录�?          matchRecord.winnerChange = scoreChanges.winnerChange;
+          matchRecord.loserChange = scoreChanges.loserChange;
+          
+          // 添加到历史记�?          matchHistory.push(matchRecord);
+        }
+      }
+    } else {
+      // 瑞士轮比�?      // 获取进行中的瑞士轮比赛数据，包括所有轮次的比赛
+      const ongoingMatch = wx.getStorageSync('ongoingSwissMatch');
+      const allRoundMatches = ongoingMatch ? ongoingMatch.matchTable || [] : [];
+      
+      // 处理所有轮次的比赛
+      for (const match of allRoundMatches) {
+        // 跳过没有比分的比�?        if (!match.score || !match.winner) continue;
+        
+        // 解析比分
+        const scores = match.score.split(':');
+        if (scores.length !== 2) continue;
+        
+        const leftScore = parseInt(scores[0]);
+        const rightScore = parseInt(scores[1]);
+        
+        if (isNaN(leftScore) || isNaN(rightScore)) continue;
+        
+        // 创建比赛记录
+        let matchRecord;
+        let leftTeamPlayers, rightTeamPlayers;
+        const matchRound = match.round || 1; // 确保有轮次信�?        
+        if (mode === 'singles') {
+          leftTeamPlayers = [match.player1];
+          rightTeamPlayers = [match.player2];
+          
+          matchRecord = {
+            id: Date.now().toString() + '_' + match.player1.id + '_' + match.player2.id + '_round' + matchRound,
+            date: new Date().toISOString(),
+            leftTeam: leftTeamPlayers,
+            rightTeam: rightTeamPlayers,
+            leftScore: leftScore,
+            rightScore: rightScore,
+            winner: match.winner === 'player1' ? 'left' : 'right',
+            round: matchRound // 添加轮次信息
+          };
+        } else {
+          leftTeamPlayers = match.team1.players;
+          rightTeamPlayers = match.team2.players;
+          
+          matchRecord = {
+            id: Date.now().toString() + '_' + match.team1.id + '_' + match.team2.id + '_round' + matchRound,
+            date: new Date().toISOString(),
+            leftTeam: leftTeamPlayers,
+            rightTeam: rightTeamPlayers,
+            leftScore: leftScore,
+            rightScore: rightScore,
+            winner: match.winner === 'player1' ? 'left' : 'right',
+            round: matchRound // 添加轮次信息
+          };
+        }
+        
+        // 检查是否包含临时选手，如果包含则不记�?        if (hasTemporaryPlayer(leftTeamPlayers) || hasTemporaryPlayer(rightTeamPlayers)) {
+          continue;
+        }
+        
+        // 使用ELO系统更新积分
+        const scoreChanges = app.submitMatch(matchRecord);
+        
+        // 将积分变化值添加到比赛记录�?        matchRecord.winnerChange = scoreChanges.winnerChange;
+        matchRecord.loserChange = scoreChanges.loserChange;
+        
+        // 添加到历史记�?        matchHistory.push(matchRecord);
+      }
+    }
+    
+    // 更新全局比赛记录
+    const allMatchHistory = [...app.globalData.matchHistory, ...matchHistory];
+    app.globalData.matchHistory = allMatchHistory;
+    
+    // 保存到本地存�?    wx.setStorageSync('matchHistory', allMatchHistory);
+  },
+
+  /**
+   * 显示添加临时选手弹窗
+   */
+  showAddTempPlayerModal: function() {
+    this.setData({
+      showAddTempPlayerModal: true,
+      tempPlayerName: '',
+      tempPlayerGender: 'male'
+    });
+  },
+
+  /**
+   * 隐藏添加临时选手弹窗
+   */
+  hideAddTempPlayerModal: function() {
+    this.setData({
+      showAddTempPlayerModal: false
+    });
+  },
+
+  /**
+   * 监听临时选手姓名输入
+   */
+  onTempPlayerNameInput: function(e) {
+    this.setData({
+      tempPlayerName: e.detail.value
+    });
+  },
+
+  /**
+   * 选择临时选手性别
+   */
+  selectTempPlayerGender: function(e) {
+    const gender = e.currentTarget.dataset.gender;
+    this.setData({
+      tempPlayerGender: gender
+    });
+  },
+
+  /**
+   * 添加临时选手
+   */
+  addTempPlayer: function() {
+    const { tempPlayerName, tempPlayerGender, players } = this.data;
+    
+    // 验证姓名
+    if (!tempPlayerName.trim()) {
+      wx.showToast({
+        title: '请输入选手姓名',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    // 检查名称是否重�?    const nameExists = players.some(player => player.name === tempPlayerName);
+    
+    // 创建临时选手对象，添�?�?标识
+    const displayName = nameExists ? `${tempPlayerName}(�?` : `${tempPlayerName}(�?`;
+    
+    const tempPlayer = {
+      id: 'temp_' + Date.now(),
+      name: displayName,
+      gender: tempPlayerGender,
+      score: 1000, // 默认分数
+      avatarUrl: tempPlayerGender === 'female' ? '/images/default-avatar-female.png' : '/images/default-avatar.png',
+      isTemporary: true
+    };
+    
+    // 添加到选手列表和已选择列表
+    const updatedPlayers = [...this.data.players, tempPlayer];
+    const updatedSelectedPlayers = [...this.data.selectedPlayers, tempPlayer];
+    
+    this.setData({
+      players: updatedPlayers,
+      selectedPlayers: updatedSelectedPlayers,
+      showAddTempPlayerModal: false
+    });
+    
+    wx.showToast({
+      title: '临时选手已添�?,
+      icon: 'success'
+    });
+  },
+
+  /**
+   * 显示比分输入弹窗
+   */
+  showScoreInputModal: function(e) {
+    const row = e.currentTarget.dataset.row;
+    const col = e.currentTarget.dataset.col;
+    const matchIndex = e.currentTarget.dataset.matchIndex;
+    
+    // 判断是否为瑞士轮比赛
+    if (this.data.tournamentType === 'swiss') {
+      // 获取瑞士轮比赛数�?      const match = this.data.matchTable[matchIndex];
+      const team = this.data.mode === 'singles' ? match.player1 : match.team1;
+      const opponent = this.data.mode === 'singles' ? match.player2 : match.team2;
+      
+      // 解析已有的比�?      let teamScore = '';
+      let opponentScore = '';
+      if (match.score && match.score.includes(':')) {
+        const scores = match.score.split(':');
+        teamScore = scores[0];
+        opponentScore = scores[1];
+      }
+      
+      this.setData({
+        showScoreInputModal: true,
+        currentMatch: {
+          matchIndex: matchIndex,
+          team: team,
+          opponent: opponent,
+          isSwiss: true
+        },
+        teamScore: teamScore,
+        opponentScore: opponentScore,
+        activeScoreInput: 'team' // 默认激活队伍分数输入框
+      });
+    } else {
+      // 获取对应的比赛数�?      const match = this.data.matchTable[row].matches[col];
+      const team = this.data.matchTable[row].player || this.data.matchTable[row].team;
+      const opponent = match.opponent;
+      
+      // 解析已有的比�?      let teamScore = '';
+      let opponentScore = '';
+      if (match.score && match.score.includes(':')) {
+        const scores = match.score.split(':');
+        teamScore = scores[0];
+        opponentScore = scores[1];
+      }
+      
+      this.setData({
+        showScoreInputModal: true,
+        currentMatch: {
+          row: row,
+          col: col,
+          team: team,
+          opponent: opponent,
+          isSwiss: false
+        },
+        teamScore: teamScore,
+        opponentScore: opponentScore,
+        activeScoreInput: 'team' // 默认激活队伍分数输入框
+      });
+    }
+  },
+  
+  /**
+   * 隐藏比分输入弹窗
+   */
+  hideScoreInputModal: function() {
+    this.setData({
+      showScoreInputModal: false,
+      currentMatch: null,
+      teamScore: '',
+      opponentScore: ''
+    });
+  },
+  
+  /**
+   * 处理队伍分数输入
+   */
+  onTeamScoreInput: function(e) {
+    this.setData({
+      teamScore: e.detail.value
+    });
+  },
+  
+  /**
+   * 处理对手分数输入
+   */
+  onOpponentScoreInput: function(e) {
+    this.setData({
+      opponentScore: e.detail.value
+    });
+  },
+  
+  /**
+   * 设置快捷分数
+   */
+  setQuickScore: function(e) {
+    const { team, opponent } = e.currentTarget.dataset;
+    
+    this.setData({
+      teamScore: team,
+      opponentScore: opponent
+    });
+  },
+  
+  /**
+   * 确认比分
+   */
+  confirmScore: function() {
+    const { currentMatch, teamScore, opponentScore } = this.data;
+    
+    if (!teamScore && !opponentScore) {
+      wx.showToast({
+        title: '请输入比�?,
+        icon: 'none'
+      });
+      return;
+    }
+    
+    if (currentMatch.isSwiss) {
+      // 处理瑞士轮比赛的比分
+      const score = teamScore + ':' + opponentScore;
+      
+      // 更新比分
+      const matchTable = [...this.data.matchTable];
+      matchTable[currentMatch.matchIndex].score = score;
+      
+      // 解析比分
+      const leftScore = parseInt(teamScore);
+      const rightScore = parseInt(opponentScore);
+      
+      if (!isNaN(leftScore) && !isNaN(rightScore)) {
+        if (leftScore > rightScore) {
+          matchTable[currentMatch.matchIndex].winner = 'player1';
+        } else if (rightScore > leftScore) {
+          matchTable[currentMatch.matchIndex].winner = 'player2';
+        } else {
+          matchTable[currentMatch.matchIndex].winner = 'tie';
+        }
+      }
+      
+      this.setData({
+        matchTable: matchTable
+      });
+    } else {
+      // 调用原有的inputScore方法处理分数
+      this.inputScore({
+        currentTarget: {
+          dataset: {
+            row: currentMatch.row,
+            col: currentMatch.col,
+            score: teamScore + ':' + opponentScore
+          }
+        }
+      });
+    }
+    
+    // 保存进行中的比赛
+    this.saveOngoingMatch();
+    
+    // 隐藏弹窗
+    this.hideScoreInputModal();
+  },
+
+  /**
+   * 清除双打组合
+   */
+  clearTeam: function(e) {
+    const index = e.currentTarget.dataset.index;
+    const { selectedPlayers } = this.data;
+    let newSelectedPlayers = [...selectedPlayers];
+    
+    if (index === 0) {
+      // 清除第一�?      newSelectedPlayers.splice(0, 2);
+      // 如果还有第二组，将其移到第一组位�?      if (newSelectedPlayers.length >= 2) {
+        const team2 = newSelectedPlayers.splice(0, 2);
+        newSelectedPlayers = team2.concat(newSelectedPlayers);
+      }
+    } else if (index === 1) {
+      // 清除第二�?      newSelectedPlayers.splice(2, 2);
+    }
+    
+    this.setData({
+      selectedPlayers: newSelectedPlayers
+    });
+  },
+
+  /**
+   * 移除双打组合
+   */
+  removeDoublesTeam: function(e) {
+    const index = e.currentTarget.dataset.index;
+    const { selectedPlayers } = this.data;
+    let newSelectedPlayers = [...selectedPlayers];
+    
+    // 移除指定索引处的两名选手
+    newSelectedPlayers.splice(index, 2);
+    
+    this.setData({
+      selectedPlayers: newSelectedPlayers
+    });
+  },
+
+  /**
+   * 从已选择列表中移除选手
+   */
+  removeSelectedPlayer: function(e) {
+    const playerId = e.currentTarget.dataset.playerId;
+    const selectedPlayers = this.data.selectedPlayers.filter(p => p.id !== playerId);
+    
+    this.setData({
+      selectedPlayers: selectedPlayers
+    });
+  },
+
+  /**
+   * 设置当前激活的分数输入�?   */
+  setActiveScoreInput: function(e) {
+    const input = e.currentTarget.dataset.input;
+    this.setData({
+      activeScoreInput: input
+    });
+  },
+  
+  /**
+   * 输入数字
+   */
+  inputNumber: function(e) {
+    const number = e.currentTarget.dataset.number;
+    const { activeScoreInput, teamScore, opponentScore } = this.data;
+    
+    if (activeScoreInput === 'team') {
+      // 输入队伍分数
+      let newScore = teamScore === '' ? number : teamScore + number;
+      // 限制最大为99
+      if (parseInt(newScore) <= 99) {
+        this.setData({
+          teamScore: newScore
+        });
+      }
+    } else if (activeScoreInput === 'opponent') {
+      // 输入对手分数
+      let newScore = opponentScore === '' ? number : opponentScore + number;
+      // 限制最大为99
+      if (parseInt(newScore) <= 99) {
+        this.setData({
+          opponentScore: newScore
+        });
+      }
+    }
+  },
+  
+  /**
+   * 输入快捷数字
+   */
+  inputQuickNumber: function(e) {
+    const number = e.currentTarget.dataset.number;
+    const { activeScoreInput } = this.data;
+    
+    if (activeScoreInput === 'team') {
+      this.setData({
+        teamScore: number
+      });
+    } else if (activeScoreInput === 'opponent') {
+      this.setData({
+        opponentScore: number
+      });
+    }
+  },
+  
+  /**
+   * 清除数字
+   */
+  clearNumber: function() {
+    const { activeScoreInput } = this.data;
+    
+    if (activeScoreInput === 'team') {
+      this.setData({
+        teamScore: ''
+      });
+    } else if (activeScoreInput === 'opponent') {
+      this.setData({
+        opponentScore: ''
+      });
+    }
+  },
+  
+  /**
+   * 删除数字
+   */
+  deleteNumber: function() {
+    const { activeScoreInput, teamScore, opponentScore } = this.data;
+    
+    if (activeScoreInput === 'team' && teamScore.length > 0) {
+      this.setData({
+        teamScore: teamScore.slice(0, -1)
+      });
+    } else if (activeScoreInput === 'opponent' && opponentScore.length > 0) {
+      this.setData({
+        opponentScore: opponentScore.slice(0, -1)
+      });
+    }
+  },
+}); 

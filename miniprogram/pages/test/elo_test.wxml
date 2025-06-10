@@ -1,0 +1,28 @@
+<view class="container">
+  <view class="header">
+    <text class="title">ELO积分计算测试</text>
+    <text class="subtitle">测试不同分数区间的加分倍率</text>
+  </view>
+  
+  <view class="test-results">
+    <view class="table-header">
+      <view class="cell">测试名称</view>
+      <view class="cell">原始分数</view>
+      <view class="cell">新分数</view>
+      <view class="cell">分数变化</view>
+      <view class="cell">预期倍率</view>
+      <view class="cell">结果</view>
+    </view>
+    
+    <block wx:for="{{testResults}}" wx:key="testName">
+      <view class="table-row">
+        <view class="cell">{{item.testName}}</view>
+        <view class="cell">{{item.originalScore}}</view>
+        <view class="cell">{{item.newScore}}</view>
+        <view class="cell">{{item.scoreChange}}</view>
+        <view class="cell">{{item.expectedMultiplier}}倍</view>
+        <view class="cell">{{item.result}}</view>
+      </view>
+    </block>
+  </view>
+</view> 

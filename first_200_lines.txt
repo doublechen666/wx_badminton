@@ -1,0 +1,200 @@
+﻿// 鑾峰彇搴旂敤瀹炰緥
+const app = getApp();
+
+Page({
+  /**
+   * 椤甸潰鐨勫垵濮嬫暟鎹?   */
+  data: {
+    mode: 'singles', // 榛樿涓哄崟鎵撴ā寮?    tournamentType: 'round_robin', // 姣旇禌绫诲瀷锛歳ound_robin(瀹屽叏寰幆)鎴杝wiss(鐟炲＋杞?
+    players: [], // 鎵€鏈夊彲閫夋嫨鐨勯€夋墜
+    selectedPlayers: [], // 宸查€夋嫨鐨勯€夋墜
+    matchTable: [], // 姣旇禌琛ㄦ牸鏁版嵁
+    showPlayerSelectModal: false, // 鏄惁鏄剧ず閫夋墜閫夋嫨寮圭獥
+    isMatchStarted: false, // 姣旇禌鏄惁宸插紑濮?    isMatchEnded: false, // 姣旇禌鏄惁宸茬粨鏉?    currentRound: 1, // 褰撳墠杞锛堢憺澹疆浣跨敤锛?    totalRounds: 0, // 鎬昏疆娆★紙鐟炲＋杞娇鐢級
+    playerRankings: [], // 閫夋墜鎺掑悕锛堢憺澹疆浣跨敤锛?    showAddTempPlayerModal: false, // 鏄惁鏄剧ず娣诲姞涓存椂閫夋墜寮圭獥
+    tempPlayerName: '', // 涓存椂閫夋墜濮撳悕
+    tempPlayerGender: 'male', // 涓存椂閫夋墜鎬у埆锛岄粯璁や负鐢?    isDoubles: false, // 鏄惁涓哄弻鎵撴ā寮?    showScoreInputModal: false,
+    currentMatch: null,
+    teamScore: '',
+    opponentScore: '',
+    activeScoreInput: 'team', // 褰撳墠婵€娲荤殑鍒嗘暟杈撳叆妗嗭紝鍙€夊€硷細'team'鎴?opponent'
+    showRankingModal: false, // 鏄惁鏄剧ず鎺掑悕缁撴灉寮圭獥
+  },
+
+  /**
+   * 鐢熷懡鍛ㄦ湡鍑芥暟--鐩戝惉椤甸潰鍔犺浇
+   */
+  onLoad: function (options) {
+    const mode = options.mode || 'singles';
+    const tournamentType = options.tournament_type || 'round_robin';
+    
+    this.setData({
+      mode: mode,
+      tournamentType: tournamentType,
+      isDoubles: mode === 'doubles'
+    });
+    
+    // 鍔犺浇閫夋墜鏁版嵁
+    this.loadPlayers();
+    
+    // 妫€鏌ユ槸鍚︽湁杩涜涓殑姣旇禌
+    this.checkOngoingMatch();
+  },
+  
+  /**
+   * 鍔犺浇閫夋墜鏁版嵁
+   */
+  loadPlayers: function() {
+    const allPlayers = app.globalData.players || [];
+    
+    this.setData({
+      players: allPlayers
+    });
+  },
+  
+  /**
+   * 妫€鏌ユ槸鍚︽湁杩涜涓殑姣旇禌
+   */
+  checkOngoingMatch: function() {
+    const storageKey = this.data.tournamentType === 'swiss' ? 'ongoingSwissMatch' : 'ongoingRoundRobinMatch';
+    const ongoingMatch = wx.getStorageSync(storageKey);
+    
+    if (ongoingMatch && ongoingMatch.mode === this.data.mode) {
+      this.setData({
+        selectedPlayers: ongoingMatch.players,
+        matchTable: ongoingMatch.matchTable,
+        isMatchStarted: true,
+        currentRound: ongoingMatch.currentRound || 1,
+        totalRounds: ongoingMatch.totalRounds || 0,
+        playerRankings: ongoingMatch.playerRankings || []
+      });
+    }
+  },
+  
+  /**
+   * 鏄剧ず閫夋墜閫夋嫨寮圭獥
+   */
+  showPlayerSelect: function() {
+    this.setData({
+      showPlayerSelectModal: true
+    });
+  },
+  
+  /**
+   * 闅愯棌閫夋墜閫夋嫨寮圭獥
+   */
+  hidePlayerSelect: function() {
+    this.setData({
+      showPlayerSelectModal: false
+    });
+  },
+  
+  /**
+   * 鍒囨崲閫夋墜閫夋嫨鐘舵€?   */
+  togglePlayerSelection: function(e) {
+    const playerId = e.currentTarget.dataset.id;
+    const { selectedPlayers, isDoubles, players } = this.data;
+    
+    // 鏌ユ壘閫夋墜瀵硅薄
+    const player = players.find(p => p.id === playerId);
+    if (!player) return;
+    
+    // 鏌ユ壘閫夋墜鏄惁宸茶閫変腑
+    const index = selectedPlayers.findIndex(p => p.id === playerId);
+    
+    // 濡傛灉鏄弻鎵撴ā寮?    if (isDoubles) {
+      // 濡傛灉宸茬粡閫夋嫨浜?鍚嶉€夋墜锛屼笖褰撳墠閫夋墜鏈閫変腑锛屽垯涓嶅厑璁稿啀閫?      if (selectedPlayers.length >= 4 && index === -1) {
+        wx.showToast({
+          title: '鍙屾墦妯″紡鏈€澶氶€夋嫨4鍚嶉€夋墜',
+          icon: 'none'
+        });
+        return;
+      }
+      
+      // 鍒囨崲閫夋嫨鐘舵€?      let newSelectedPlayers = [...selectedPlayers];
+      if (index !== -1) {
+        // 鍙栨秷閫夋嫨
+        newSelectedPlayers.splice(index, 1);
+      } else {
+        // 娣诲姞閫夋嫨
+        newSelectedPlayers.push(player);
+      }
+      
+      this.setData({
+        selectedPlayers: newSelectedPlayers
+      });
+    } else {
+      // 鍗曟墦妯″紡 - 绉婚櫎閫夋墜鏁伴噺闄愬埗
+      // 鍒囨崲閫夋嫨鐘舵€?      let newSelectedPlayers = [...selectedPlayers];
+      if (index !== -1) {
+        // 鍙栨秷閫夋嫨
+        newSelectedPlayers.splice(index, 1);
+      } else {
+        // 娣诲姞閫夋嫨
+        newSelectedPlayers.push(player);
+      }
+      
+      this.setData({
+        selectedPlayers: newSelectedPlayers
+      });
+    }
+  },
+  
+  /**
+   * 妫€鏌ラ€夋墜鏄惁琚€変腑
+   */
+  isPlayerSelected: function(playerId) {
+    return this.data.selectedPlayers.some(function(player) {
+      return player.id === playerId;
+    });
+  },
+  
+  /**
+   * 纭閫夋墜閫夋嫨
+   */
+  confirmPlayerSelection: function() {
+    const { selectedPlayers, mode, tournamentType } = this.data;
+    
+    // 妫€鏌ラ€夋墜鏁伴噺
+    if (selectedPlayers.length < 2) {
+      wx.showToast({
+        title: '鑷冲皯闇€瑕?鍚嶉€夋墜',
+        icon: 'none'
+      });
+      return;
+    }
+    
+    // 濡傛灉鏄弻鎵撴ā寮忥紝妫€鏌ラ€夋墜鏁伴噺鏄惁涓哄伓鏁?    if (mode === 'doubles' && selectedPlayers.length % 2 !== 0) {
+      wx.showToast({
+        title: '鍙屾墦妯″紡闇€瑕佸伓鏁板悕閫夋墜',
+        icon: 'none'
+      });
+      return;
+    }
+
+    // 濡傛灉鏄憺澹疆锛屾鏌ラ€夋墜鏁伴噺鏄惁鑷冲皯涓?浜?    if (tournamentType === 'swiss') {
+      const minPlayers = 4;
+      const actualPlayers = mode === 'singles' ? selectedPlayers.length : selectedPlayers.length / 2;
+      if (actualPlayers < minPlayers) {
+        wx.showModal({
+          title: '閫夋墜鏁伴噺涓嶈冻',
+          content: `鐟炲＋杞嚦灏戦渶瑕?{mode === 'singles' ? minPlayers : minPlayers * 2}鍚嶉€夋墜鎵嶈兘杩涜鏈夋剰涔夌殑姣旇禌`,
+          showCancel: false
+        });
+        return;
+      }
+    }
+
+    // 濡傛灉鏄弻鎵撴ā寮忥紝缁勭粐閫夋墜涓虹粍鍚?    if (mode === 'doubles') {
+      // 妫€鏌ユ槸鍚︽湁瓒冲鐨勭敺濂抽€夋墜缁勬垚娣峰弻
+      const maleCount = selectedPlayers.filter(p => p.gender === 'male').length;
+      const femaleCount = selectedPlayers.filter(p => p.gender === 'female').length;
+      
+      // 鎻愮ず鎬у埆缁勫悎鎯呭喌
+      let pairsInfo = '';
+      if (maleCount >= 2 && femaleCount >= 2) {
+        pairsInfo = '灏嗙粍鎴愮敺鍙屻€佸コ鍙屽拰娣峰弻缁勫悎';
+      } else if (maleCount >= 2) {
+        pairsInfo = '灏嗙粍鎴愮敺鍙岀粍鍚?;
+      } else if (femaleCount >= 2) {
+        pairsInfo = '灏嗙粍鎴愬コ鍙岀粍鍚?;
