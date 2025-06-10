@@ -35,7 +35,7 @@
 
 1. 克隆本仓库
    ```
-   git clone https://github.com/你的用户名/wx_badminton.git
+   git clone https://github.com/doublechen666/wx_badminton.git
    ```
 
 2. 使用微信开发者工具打开项目
@@ -62,21 +62,15 @@
 
 欢迎提交Issue和Pull Request，一起完善这个项目！
 
-1. Fork本仓库
-2. 创建你的特性分支 (`git checkout -b feature/amazing-feature`)
-3. 提交你的更改 (`git commit -m 'Add some amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 提交Pull Request
 
 ## 版权信息
 
-Copyright © 2023 嘴强羽球团队
+Copyright © 2025 嘴强羽球团队
 
 ## 联系方式
 
 如有问题或建议，请通过以下方式联系我们：
-- 邮箱：your.email@example.com
-- 微信：your_wechat_id
+- 邮箱：lifeihonguk@163.com
 
 ---
 
